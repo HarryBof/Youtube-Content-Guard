@@ -18,6 +18,8 @@ A Chrome Extension that uses Google Gemini to automatically detect and block unw
 
 # Installation
 
+You can check out the release for faster installation, or follow the instruction below.
+
 ## 1. Download the project
 
 Download or clone this repository to your computer.
