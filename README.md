@@ -345,4 +345,3 @@ Built with:
 * Chrome Extension Manifest V3
 * Google Gemini API
 * YouTube metadata
-* 
