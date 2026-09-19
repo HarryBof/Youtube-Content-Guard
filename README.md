@@ -179,11 +179,11 @@ When you open a YouTube video, the extension:
 ```text
 YouTube video
       ↓
-Read video title
+Get video title + video URL
       ↓
-Send title to Gemini
+Send video to Gemini
       ↓
-Compare title with blocking rules
+Compare the content with blocking rules
       ↓
 Gemini returns:
     block = true / false
@@ -195,6 +195,8 @@ Pause video
 Close the current tab
 ```
 
-The title is read directly from the YouTube video page rather than relying only on the browser's page title.
+Gemini can analyze the actual video rather than relying only on keywords in the title. This allows the extension to detect unwanted content even when the video has a misleading, vague, or unrelated title.
+
+For example, a video could have a harmless-looking title but contain the type of content described by one of your blocking rules. The AI can use the video itself to make the decision.
 
 ---
