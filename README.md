@@ -168,7 +168,7 @@ From there you can:
 * Delete all rules
 * Change the Gemini API key
 
-Enter the same password again to hide the admin panel.
+Enter the same password again or exit the extension to hide the admin panel.
 
 ---
 
