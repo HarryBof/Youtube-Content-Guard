@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ContentGuard",
-  "version": "1.1",
+  "version": "1.2",
   "description": "Block unwanted content on YouTube using AI-powered content moderation.",
 
   "permissions": [
