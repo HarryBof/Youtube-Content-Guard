@@ -14,7 +14,7 @@ YouTube Content Guard can detect the current YouTube video, compare it against y
 * YouTube URL analysis for creating useful blocking rules.
 * Local keyword extraction without AI.
 * Optional Gemini keyword enhancement.
-* Optimized token usage (Approximately 1000 video for free tier Gemini API)
+* Optimized token usage
 * Redirects blocked videos back to `https://www.youtube.com/`.
 * Password-protected admin panel.
 * Add and delete individual blocking rules.
