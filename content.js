@@ -22,20 +22,64 @@ let checkInProgress = false;
 
 
 // ======================================================
+// DEBUG HELPER
+// ======================================================
+
+function debug(...args) {
+  console.log(
+    "%c[YT-Guard]",
+    "background: #2ba640; color: white; font-weight: bold;",
+    ...args
+  );
+}
+
+
+// ======================================================
 // LẤY VIDEO ID HIỆN TẠI
 // ======================================================
 
 function getCurrentVideoId() {
 
+  const path =
+    window.location.pathname;
+
+  const search =
+    window.location.search;
+
+  debug(
+    "Getting video ID...",
+    {
+      path,
+      search
+    }
+  );
+
+
   if (
-    window.location.pathname !== "/watch"
+    path !== "/watch"
   ) {
+
+    debug(
+      "Not a /watch page. No video ID."
+    );
+
     return null;
   }
 
-  return new URLSearchParams(
-    window.location.search
-  ).get("v");
+
+  const videoId =
+    new URLSearchParams(
+      search
+    ).get("v");
+
+
+  debug(
+    "Current video ID:",
+    videoId
+  );
+
+
+  return videoId;
 }
 
 
@@ -45,18 +89,41 @@ function getCurrentVideoId() {
 
 function getRealVideoTitle() {
 
-  const el =
-    document.querySelector(
-      "h1.ytd-watch-metadata yt-formatted-string"
-    ) ||
-    document.querySelector(
-      "h1.title yt-formatted-string"
-    ) ||
-    document.querySelector(
-      "h1.ytd-watch-metadata"
-    );
+  debug(
+    "Trying to find video title..."
+  );
 
-  if (el) {
+
+  const selectors = [
+
+    "h1.ytd-watch-metadata yt-formatted-string",
+
+    "h1.title yt-formatted-string",
+
+    "h1.ytd-watch-metadata"
+
+  ];
+
+
+  for (
+    const selector of selectors
+  ) {
+
+    const el =
+      document.querySelector(
+        selector
+      );
+
+
+    if (!el) {
+
+      debug(
+        `Title selector not found: ${selector}`
+      );
+
+      continue;
+    }
+
 
     const title =
       (
@@ -65,11 +132,20 @@ function getRealVideoTitle() {
         ""
       ).trim();
 
+
     if (title.length > 0) {
+
+      debug(
+        "Title found:",
+        title
+      );
+
       return title;
     }
   }
 
+
+  // Fallback: document.title
 
   const rawTitle =
     document.title
@@ -83,12 +159,25 @@ function getRealVideoTitle() {
       )
       .trim();
 
+
   if (
     !rawTitle ||
     rawTitle === "YouTube"
   ) {
+
+    debug(
+      "Could not find a valid title."
+    );
+
     return null;
   }
+
+
+  debug(
+    "Title found using document.title:",
+    rawTitle
+  );
+
 
   return rawTitle;
 }
@@ -112,6 +201,7 @@ function getVideoChannel() {
 
   ];
 
+
   for (
     const selector of selectors
   ) {
@@ -120,6 +210,7 @@ function getVideoChannel() {
       document.querySelectorAll(
         selector
       );
+
 
     for (
       const el of elements
@@ -132,11 +223,23 @@ function getVideoChannel() {
           ""
         ).trim();
 
+
       if (text) {
+
+        debug(
+          "Channel found:",
+          text
+        );
+
         return text;
       }
     }
   }
+
+
+  debug(
+    "Channel not found. Using empty string."
+  );
 
 
   return "";
@@ -163,6 +266,7 @@ function getVideoDescription() {
 
   ];
 
+
   for (
     const selector of selectors
   ) {
@@ -172,9 +276,11 @@ function getVideoDescription() {
         selector
       );
 
+
     if (!el) {
       continue;
     }
+
 
     const text =
       (
@@ -183,10 +289,22 @@ function getVideoDescription() {
         ""
       ).trim();
 
+
     if (text) {
+
+      debug(
+        "Description found. Length:",
+        text.length
+      );
+
       return text;
     }
   }
+
+
+  debug(
+    "Description not found. Using empty string."
+  );
 
 
   return "";
@@ -199,7 +317,7 @@ function getVideoDescription() {
 
 function getVideoMetadata() {
 
-  return {
+  const metadata = {
 
     title:
       getRealVideoTitle() || "",
@@ -211,6 +329,15 @@ function getVideoMetadata() {
       getVideoDescription() || ""
 
   };
+
+
+  debug(
+    "Collected metadata:",
+    metadata
+  );
+
+
+  return metadata;
 }
 
 
@@ -224,16 +351,55 @@ async function checkAndBlock(
 ) {
 
   if (checkInProgress) {
+
+    debug(
+      "Check already in progress. Skipping."
+    );
+
     return;
   }
 
+
   checkInProgress = true;
+
 
   try {
 
-    console.log(
-      "[YT-Guard] Checking metadata:",
-      metadata
+    debug(
+      "========================================"
+    );
+
+    debug(
+      "STARTING VIDEO CHECK"
+    );
+
+    debug(
+      "Video ID:",
+      videoId
+    );
+
+    debug(
+      "Title:",
+      metadata.title
+    );
+
+    debug(
+      "Channel:",
+      metadata.channel
+    );
+
+    debug(
+      "Description length:",
+      metadata.description.length
+    );
+
+
+    // ----------------------------------------
+    // SEND CHECK_VIDEO
+    // ----------------------------------------
+
+    debug(
+      "Sending CHECK_VIDEO message to service worker..."
     );
 
 
@@ -257,39 +423,60 @@ async function checkAndBlock(
       });
 
 
+    debug(
+      "CHECK_VIDEO response received:",
+      result
+    );
+
+
     // ----------------------------------------
-    // VIDEO ĐÃ THAY ĐỔI
+    // VIDEO CHANGED
     // ----------------------------------------
 
     const currentVideoId =
       getCurrentVideoId();
 
+
+    debug(
+      "Video ID after check:",
+      currentVideoId
+    );
+
+
     if (
       currentVideoId !== videoId
     ) {
 
-      console.log(
-        "[YT-Guard] Video changed during check. Skipping result."
+      debug(
+        "Video changed during check. Ignoring result."
       );
 
       return;
     }
 
+
+    // ----------------------------------------
+    // NO RESPONSE
+    // ----------------------------------------
 
     if (!result) {
 
-      console.warn(
-        "[YT-Guard] Không nhận được phản hồi từ service worker."
+      console.error(
+        "[YT-Guard] ERROR: No response from service worker!"
       );
 
       return;
     }
 
+
+    // ----------------------------------------
+    // SERVICE WORKER ERROR
+    // ----------------------------------------
 
     if (result.error) {
 
       console.error(
-        "[YT-Guard] Check error:",
+        "[YT-Guard] SERVICE WORKER ERROR:",
         result.error
       );
 
@@ -297,8 +484,12 @@ async function checkAndBlock(
     }
 
 
-    console.log(
-      "[YT-Guard] Check result:",
+    // ----------------------------------------
+    // RESULT
+    // ----------------------------------------
+
+    debug(
+      "FINAL CHECK RESULT:",
       result
     );
 
@@ -316,7 +507,26 @@ async function checkAndBlock(
     ) {
 
       console.warn(
-        "[YT-Guard] Vi phạm tiêu chí chặn! Đang đóng tab..."
+        "%c[YT-Guard] BLOCK MATCH FOUND!",
+        "background: red; color: white; font-size: 16px; font-weight: bold;"
+      );
+
+
+      debug(
+        "Matched rule:",
+        result.matchedRule
+      );
+
+      debug(
+        "Match source:",
+        result.source
+      );
+
+
+      // Pause video
+
+      debug(
+        "Pausing all videos..."
       );
 
 
@@ -326,47 +536,93 @@ async function checkAndBlock(
           video => {
 
             try {
+
               video.pause();
+
             } catch {
-              // Không làm gì.
+              // Ignore.
             }
 
           }
         );
 
 
+      // ----------------------------------------
+      // CLOSE TAB
+      // ----------------------------------------
+
+      debug(
+        "Sending CLOSE_CURRENT_TAB..."
+      );
+
+
       try {
 
-        await chrome.runtime.sendMessage({
+        const closeResult =
+          await chrome.runtime.sendMessage({
 
-          action:
-            "CLOSE_CURRENT_TAB"
+            action:
+              "CLOSE_CURRENT_TAB"
 
-        });
+          });
+
+
+        debug(
+          "CLOSE_CURRENT_TAB response:",
+          closeResult
+        );
+
 
       } catch (closeError) {
 
         console.error(
-          "[YT-Guard] Không thể yêu cầu đóng tab:",
+          "[YT-Guard] Could not request tab close:",
           closeError
         );
 
+
+        debug(
+          "Trying window.close() fallback..."
+        );
+
+
         window.close();
       }
+
+
+    } else {
+
+      debug(
+        "%cVIDEO ALLOWED",
+        "background: #333; color: #7ee787; font-weight: bold;"
+      );
+
     }
+
+
+    debug(
+      "VIDEO CHECK FINISHED"
+    );
+
+    debug(
+      "========================================"
+    );
 
 
   } catch (error) {
 
     console.error(
-      "[YT-Guard] Lỗi khi kiểm tra video:",
+      "%c[YT-Guard] CHECK FAILED",
+      "background: red; color: white; font-size: 14px; font-weight: bold;",
       error
     );
+
 
   } finally {
 
     checkInProgress =
       false;
+
   }
 }
 
@@ -378,6 +634,12 @@ async function checkAndBlock(
 function resetCandidate(
   videoId
 ) {
+
+  debug(
+    "Resetting candidate for video:",
+    videoId
+  );
+
 
   currentCandidate = {
 
@@ -407,24 +669,17 @@ function runCheck() {
 
 
   // ----------------------------------------
-  // KHÔNG PHẢI TRANG VIDEO
+  // NOT VIDEO PAGE
   // ----------------------------------------
 
   if (!videoId) {
-
-    lastCheckedId =
-      null;
-
-    resetCandidate(
-      null
-    );
 
     return;
   }
 
 
   // ----------------------------------------
-  // VIDEO MỚI
+  // NEW VIDEO
   // ----------------------------------------
 
   if (
@@ -432,9 +687,17 @@ function runCheck() {
     currentCandidate.videoId
   ) {
 
+    debug(
+      "%cNEW VIDEO DETECTED",
+      "background: blue; color: white; font-weight: bold;",
+      videoId
+    );
+
+
     resetCandidate(
       videoId
     );
+
 
     lastCheckedId =
       null;
@@ -442,7 +705,7 @@ function runCheck() {
 
 
   // ----------------------------------------
-  // ĐÃ KIỂM TRA
+  // ALREADY CHECKED
   // ----------------------------------------
 
   if (
@@ -455,23 +718,31 @@ function runCheck() {
 
 
   // ----------------------------------------
-  // LẤY METADATA
+  // GET METADATA
   // ----------------------------------------
 
   const metadata =
     getVideoMetadata();
 
 
+  // ----------------------------------------
+  // NO TITLE
+  // ----------------------------------------
+
   if (
     !metadata.title
   ) {
+
+    debug(
+      "No title yet. Waiting for YouTube..."
+    );
 
     return;
   }
 
 
   // ----------------------------------------
-  // METADATA VỪA THAY ĐỔI
+  // CHECK WHETHER METADATA CHANGED
   // ----------------------------------------
 
   const metadataChanged =
@@ -488,6 +759,23 @@ function runCheck() {
 
   if (metadataChanged) {
 
+    debug(
+      "Metadata changed. Saving candidate..."
+    );
+
+
+    debug(
+      "OLD:",
+      currentCandidate
+    );
+
+
+    debug(
+      "NEW:",
+      metadata
+    );
+
+
     currentCandidate.title =
       metadata.title;
 
@@ -500,27 +788,43 @@ function runCheck() {
     currentCandidate.metadataSince =
       Date.now();
 
+
+    debug(
+      "Waiting 500ms for metadata to stabilize..."
+    );
+
+
     return;
   }
 
 
   // ----------------------------------------
-  // CHỜ METADATA ỔN ĐỊNH
+  // WAIT FOR STABLE METADATA
   // ----------------------------------------
 
-  if (
+  const stableFor =
     Date.now() -
-      currentCandidate.metadataSince <
-    500
+    currentCandidate.metadataSince;
+
+
+  if (
+    stableFor < 500
   ) {
 
     return;
   }
 
 
-  console.log(
-    "[YT-Guard] Metadata ready:",
-    metadata
+  debug(
+    "%cMETADATA READY",
+    "background: orange; color: black; font-weight: bold;"
+  );
+
+
+  debug(
+    "Stable for:",
+    stableFor,
+    "ms"
   );
 
 
@@ -529,6 +833,15 @@ function runCheck() {
     videoId
   );
 }
+
+
+// ======================================================
+// START PERIODIC CHECK
+// ======================================================
+
+debug(
+  "Starting 500ms YouTube monitoring loop..."
+);
 
 
 setInterval(
@@ -545,8 +858,20 @@ window.addEventListener(
   "yt-navigate-finish",
   () => {
 
+    debug(
+      "%cYouTube navigation detected",
+      "background: purple; color: white; font-weight: bold;"
+    );
+
+
     const videoId =
       getCurrentVideoId();
+
+
+    debug(
+      "New navigation video ID:",
+      videoId
+    );
 
 
     lastCheckedId =
@@ -590,6 +915,12 @@ window.addEventListener(
   "load",
   () => {
 
+    debug(
+      "%cYouTube page load detected",
+      "background: purple; color: white; font-weight: bold;"
+    );
+
+
     runCheck();
 
 
@@ -606,3 +937,15 @@ window.addEventListener(
 
   }
 );
+
+
+// ======================================================
+// IMMEDIATE INITIAL CHECK
+// ======================================================
+
+debug(
+  "Running initial immediate check..."
+);
+
+
+runCheck();

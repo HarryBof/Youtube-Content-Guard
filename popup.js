@@ -1,34 +1,65 @@
-const setupView = document.getElementById("setup-view");
-const mainView = document.getElementById("main-view");
+const setupView =
+  document.getElementById("setup-view");
 
-const initApiKey = document.getElementById("init-api-key");
-const initPassword = document.getElementById("init-password");
-const btnSaveSetup = document.getElementById("btn-save-setup");
-
-const ruleInput = document.getElementById("rule-input");
-const btnAdd = document.getElementById("btn-add");
-
-const adminPanel = document.getElementById("admin-panel");
-const rulesList = document.getElementById("rules-list");
-
-const btnClearAll = document.getElementById("btn-clear-all");
-
-const useApiToggle = document.getElementById("use-api-toggle");
-const currentApiKey = document.getElementById("current-api-key");
-const btnShowApi = document.getElementById("btn-show-api");
-
-const changeApiKey = document.getElementById("change-api-key");
-const btnUpdateKey = document.getElementById("btn-update-key");
+const mainView =
+  document.getElementById("main-view");
 
 
-// Used only for short popup operations.
-// Gemini analysis does not lock the entire popup.
-let busy = false;
+const initApiKey =
+  document.getElementById("init-api-key");
+
+const initPassword =
+  document.getElementById("init-password");
+
+const btnSaveSetup =
+  document.getElementById("btn-save-setup");
 
 
-// Used to prevent an older analysis result from
-// overwriting a newer request.
-let analysisGeneration = 0;
+const ruleInput =
+  document.getElementById("rule-input");
+
+const btnAdd =
+  document.getElementById("btn-add");
+
+
+const adminPanel =
+  document.getElementById("admin-panel");
+
+const rulesList =
+  document.getElementById("rules-list");
+
+
+const btnClearAll =
+  document.getElementById("btn-clear-all");
+
+
+const useApiToggle =
+  document.getElementById("use-api-toggle");
+
+const currentApiKey =
+  document.getElementById("current-api-key");
+
+const btnShowApi =
+  document.getElementById("btn-show-api");
+
+
+const changeApiKey =
+  document.getElementById("change-api-key");
+
+const btnUpdateKey =
+  document.getElementById("btn-update-key");
+
+
+// ======================================================
+// STATE
+// ======================================================
+
+let busy =
+  false;
+
+
+let analysisGeneration =
+  0;
 
 
 // ======================================================
@@ -41,25 +72,43 @@ async function initializePopup() {
 
     const data =
       await chrome.storage.local.get({
-        apiKey: "",
-        password: "",
-        useApi: true,
-        blockRules: []
+
+        apiKey:
+          "",
+
+        password:
+          "",
+
+        useApi:
+          true,
+
+        blockRules:
+          []
+
       });
 
 
-    // Password is required for setup.
-    // Gemini API key is optional.
+    // Password is required.
+    // API key is optional.
+
     if (
+
       !data.password ||
+
       typeof data.password !== "string" ||
+
       !data.password.trim()
+
     ) {
 
-      setupView.style.display = "flex";
-      mainView.style.display = "none";
+      setupView.style.display =
+        "flex";
+
+      mainView.style.display =
+        "none";
 
       return;
+
     }
 
 
@@ -68,25 +117,35 @@ async function initializePopup() {
     ) {
 
       await chrome.storage.local.set({
-        blockRules: []
+
+        blockRules:
+          []
+
       });
 
     }
 
 
-    setupView.style.display = "none";
-    mainView.style.display = "block";
+    setupView.style.display =
+      "none";
+
+    mainView.style.display =
+      "block";
 
 
     updateApiSettingsUI(
+
       typeof data.apiKey === "string"
         ? data.apiKey
         : "",
+
       data.useApi !== false
+
     );
 
 
     ruleInput.focus();
+
 
   } catch (error) {
 
@@ -94,6 +153,7 @@ async function initializePopup() {
       "[YT-Guard] Popup initialization error:",
       error
     );
+
 
     alert(
       "Unable to initialize the extension."
@@ -112,11 +172,17 @@ initializePopup();
 // ======================================================
 
 btnSaveSetup.addEventListener(
+
   "click",
+
   async () => {
 
-    if (busy) {
+    if (
+      busy
+    ) {
+
       return;
+
     }
 
 
@@ -128,29 +194,39 @@ btnSaveSetup.addEventListener(
       initPassword.value.trim();
 
 
-    // API key is optional.
-    // Password is required.
-    if (!pass) {
+    if (
+      !pass
+    ) {
 
       alert(
         "Please create a password."
       );
 
+
       return;
+
     }
 
 
-    busy = true;
+    busy =
+      true;
 
-    btnSaveSetup.disabled = true;
+
+    btnSaveSetup.disabled =
+      true;
 
 
     try {
 
       const data =
         await chrome.storage.local.get({
-          blockRules: [],
-          useApi: true
+
+          blockRules:
+            [],
+
+          useApi:
+            true
+
         });
 
 
@@ -175,23 +251,33 @@ btnSaveSetup.addEventListener(
       });
 
 
-      setupView.style.display = "none";
-      mainView.style.display = "block";
+      setupView.style.display =
+        "none";
+
+      mainView.style.display =
+        "block";
 
 
-      initApiKey.value = "";
-      initPassword.value = "";
+      initApiKey.value =
+        "";
+
+      initPassword.value =
+        "";
 
 
       updateApiSettingsUI(
+
         key,
+
         key
           ? data.useApi !== false
           : false
+
       );
 
 
       ruleInput.focus();
+
 
     } catch (error) {
 
@@ -205,21 +291,30 @@ btnSaveSetup.addEventListener(
         "Unable to save setup."
       );
 
+
     } finally {
 
-      busy = false;
+      busy =
+        false;
 
-      btnSaveSetup.disabled = false;
+      btnSaveSetup.disabled =
+        false;
 
     }
 
   }
+
 );
 
 
-// Allow Enter to submit the initial setup.
+// ======================================================
+// ENTER SETUP
+// ======================================================
+
 initPassword.addEventListener(
+
   "keydown",
+
   event => {
 
     if (
@@ -233,6 +328,7 @@ initPassword.addEventListener(
     }
 
   }
+
 );
 
 
@@ -246,7 +342,9 @@ function parseYouTubeUrl(text) {
 
     const normalized =
       /^https?:\/\//i.test(text)
+
         ? text
+
         : `https://${text}`;
 
 
@@ -258,7 +356,7 @@ function parseYouTubeUrl(text) {
       url.hostname.toLowerCase();
 
 
-    // youtu.be/VIDEO_ID
+    // youtu.be
 
     if (
       hostname === "youtu.be"
@@ -271,11 +369,15 @@ function parseYouTubeUrl(text) {
 
 
       if (
+
         !videoId ||
+
         !/^[A-Za-z0-9_-]{6,20}$/.test(videoId)
+
       ) {
 
         return null;
+
       }
 
 
@@ -291,7 +393,7 @@ function parseYouTubeUrl(text) {
     }
 
 
-    // youtube.com/watch?v=VIDEO_ID
+    // youtube.com/watch
 
     if (
 
@@ -308,6 +410,7 @@ function parseYouTubeUrl(text) {
       ) {
 
         return null;
+
       }
 
 
@@ -324,6 +427,7 @@ function parseYouTubeUrl(text) {
       ) {
 
         return null;
+
       }
 
 
@@ -340,6 +444,7 @@ function parseYouTubeUrl(text) {
 
 
     return null;
+
 
   } catch {
 
@@ -360,7 +465,7 @@ function isYouTubeUrl(text) {
 
 
 // ======================================================
-// RENDER BLOCK RULES
+// RENDER RULES
 // ======================================================
 
 async function renderRules() {
@@ -369,27 +474,32 @@ async function renderRules() {
 
     const data =
       await chrome.storage.local.get({
-        blockRules: []
+
+        blockRules:
+          []
+
       });
 
 
     const rules =
       Array.isArray(data.blockRules)
+
         ? data.blockRules
+
         : [];
 
 
-    rulesList.innerHTML = "";
+    rulesList.innerHTML =
+      "";
 
 
     rules.forEach(
+
       rule => {
 
         const li =
           document.createElement("li");
 
-
-        // Remove button
 
         const btnRemove =
           document.createElement("button");
@@ -408,25 +518,36 @@ async function renderRules() {
 
 
         btnRemove.addEventListener(
+
           "click",
+
           async () => {
 
             try {
 
               const latest =
                 await chrome.storage.local.get({
-                  blockRules: []
+
+                  blockRules:
+                    []
+
                 });
 
 
               const latestRules =
-                Array.isArray(latest.blockRules)
+                Array.isArray(
+                  latest.blockRules
+                )
+
                   ? [...latest.blockRules]
+
                   : [];
 
 
               const removeIndex =
-                latestRules.indexOf(rule);
+                latestRules.indexOf(
+                  rule
+                );
 
 
               if (
@@ -434,8 +555,11 @@ async function renderRules() {
               ) {
 
                 latestRules.splice(
+
                   removeIndex,
+
                   1
+
                 );
 
               }
@@ -451,6 +575,7 @@ async function renderRules() {
 
               await renderRules();
 
+
             } catch (error) {
 
               console.error(
@@ -461,10 +586,9 @@ async function renderRules() {
             }
 
           }
+
         );
 
-
-        // Rule text
 
         const span =
           document.createElement("span");
@@ -493,7 +617,9 @@ async function renderRules() {
         );
 
       }
+
     );
+
 
   } catch (error) {
 
@@ -508,46 +634,67 @@ async function renderRules() {
 
 
 // ======================================================
-// SAVE NEW RULE
+// SAVE ONE RULE
 // ======================================================
 
-async function saveNewRule(newRule) {
+async function saveNewRule(
+  newRule
+) {
 
   const cleanRule =
-    String(newRule || "").trim();
+    String(
+      newRule || ""
+    ).trim();
 
 
-  if (!cleanRule) {
-    return;
+  if (
+    !cleanRule
+  ) {
+
+    return false;
+
   }
 
 
   const data =
     await chrome.storage.local.get({
-      blockRules: []
+
+      blockRules:
+        []
+
     });
 
 
   const currentRules =
-    Array.isArray(data.blockRules)
+    Array.isArray(
+      data.blockRules
+    )
+
       ? [...data.blockRules]
+
       : [];
 
 
-  // Do not add duplicate rules.
-
   const duplicate =
     currentRules.some(
+
       rule =>
+
         String(rule)
           .trim()
           .toLowerCase() ===
+
         cleanRule.toLowerCase()
+
     );
 
 
-  if (duplicate) {
-    return;
+  if (
+    duplicate
+  ) {
+
+    return false;
+
   }
 
 
@@ -565,21 +712,120 @@ async function saveNewRule(newRule) {
 
 
   if (
-    adminPanel.style.display === "block"
+    adminPanel.style.display ===
+    "block"
   ) {
 
     await renderRules();
 
   }
 
+
+  return true;
+
 }
 
 
 // ======================================================
-// CLASSIFY YOUTUBE VIDEO
+// SAVE MULTIPLE VIDEO KEYWORDS
+// ======================================================
+//
+// Each keyword becomes its own blocking rule.
+//
+// Example:
+//
+// Channel:
+// ChessNetwork
+//
+// Keywords:
+// Magnus Carlsen
+// Hikaru Nakamura
+// Speed Chess Championship
+//
+// Stored as:
+//
+// ChessNetwork
+// Magnus Carlsen
+// Hikaru Nakamura
+// Speed Chess Championship
+//
+
+async function saveVideoKeywords(
+  result
+) {
+
+  const keywords =
+    Array.isArray(
+      result.keywords
+    )
+
+      ? result.keywords
+
+          .map(
+            keyword =>
+              String(keyword).trim()
+          )
+
+          .filter(Boolean)
+
+      : [];
+
+
+  const channel =
+    typeof result.channel === "string"
+
+      ? result.channel.trim()
+
+      : "";
+
+
+  const candidates = [
+
+    channel,
+
+    ...keywords
+
+  ];
+
+
+  const saved = [];
+
+
+  for (
+    const candidate of candidates
+  ) {
+
+    const added =
+      await saveNewRule(
+        candidate
+      );
+
+
+    if (
+      added
+    ) {
+
+      saved.push(
+        candidate
+      );
+
+    }
+
+  }
+
+
+  return saved;
+
+}
+
+
+// ======================================================
+// CLASSIFY / EXTRACT YOUTUBE VIDEO
 // ======================================================
 
-async function classifyYouTubeVideo(url) {
+async function classifyYouTubeVideo(
+  url
+) {
 
   const response =
     await chrome.runtime.sendMessage({
@@ -592,7 +838,9 @@ async function classifyYouTubeVideo(url) {
     });
 
 
-  if (!response) {
+  if (
+    !response
+  ) {
 
     throw new Error(
       "No response received from the service worker."
@@ -614,21 +862,6 @@ async function classifyYouTubeVideo(url) {
 
   if (
 
-    typeof response.category !== "string" ||
-
-    !response.category.trim()
-
-  ) {
-
-    throw new Error(
-      "Gemini did not return a category."
-    );
-
-  }
-
-
-  if (
-
     typeof response.title !== "string" ||
 
     !response.title.trim()
@@ -636,42 +869,64 @@ async function classifyYouTubeVideo(url) {
   ) {
 
     throw new Error(
-      "Gemini did not return a title."
+      "Could not extract the YouTube title."
     );
 
   }
 
 
-  const genres =
-    Array.isArray(response.genres)
+  const channel =
+    typeof response.channel === "string"
 
-      ? response.genres
+      ? response.channel.trim()
+
+      : "";
+
+
+  const keywords =
+    Array.isArray(response.keywords)
+
+      ? response.keywords
 
           .filter(
-            genre =>
-              typeof genre === "string" &&
-              genre.trim()
+            keyword =>
+              typeof keyword === "string" &&
+              keyword.trim()
           )
 
           .map(
-            genre =>
-              genre.trim()
+            keyword =>
+              keyword.trim()
           )
-
-          .slice(0, 5)
 
       : [];
 
 
   return {
 
-    category:
-      response.category.trim(),
-
     title:
       response.title.trim(),
 
-    genres
+    channel,
+
+    keywords,
+
+    localKeywords:
+      Array.isArray(response.localKeywords)
+
+        ? response.localKeywords
+
+        : [],
+
+    aiKeywords:
+      Array.isArray(response.aiKeywords)
+
+        ? response.aiKeywords
+
+        : [],
+
+    aiUsed:
+      response.aiUsed === true
 
   };
 
@@ -679,47 +934,57 @@ async function classifyYouTubeVideo(url) {
 
 
 // ======================================================
-// CREATE RULE FROM GEMINI RESULT
+// DISPLAY ANALYSIS RESULT
 // ======================================================
 
-function formatVideoRule(result) {
+function buildAnalysisText(
+  result
+) {
 
-  const category =
-    result.category.trim();
-
-
-  const title =
-    result.title.trim();
+  const lines = [];
 
 
-  const genres =
-    Array.isArray(result.genres)
-
-      ? result.genres
-          .map(
-            genre =>
-              String(genre).trim()
-          )
-          .filter(Boolean)
-
-      : [];
-
-
-  let rule =
-    `${category} / ${title}`;
+  lines.push(
+    `Title: ${result.title}`
+  );
 
 
   if (
-    genres.length > 0
+    result.channel
   ) {
 
-    rule +=
-      ` / ${genres.join(", ")}`;
+    lines.push(
+      `Channel: ${result.channel}`
+    );
 
   }
 
 
-  return rule.trim();
+  if (
+    result.keywords.length > 0
+  ) {
+
+    lines.push(
+      `Keywords: ${result.keywords.join(", ")}`
+    );
+
+  }
+
+
+  lines.push(
+
+    result.aiUsed
+
+      ? "Gemini: added specific keywords"
+
+      : "Gemini: not used"
+
+  );
+
+
+  return lines.join(
+    "\n"
+  );
 
 }
 
@@ -733,8 +998,12 @@ function updateApiSettingsUI(
   useApi
 ) {
 
-  if (!useApiToggle) {
+  if (
+    !useApiToggle
+  ) {
+
     return;
+
   }
 
 
@@ -744,9 +1013,13 @@ function updateApiSettingsUI(
     );
 
 
-  if (currentApiKey) {
+  if (
+    currentApiKey
+  ) {
 
-    if (!apiKey) {
+    if (
+      !apiKey
+    ) {
 
       currentApiKey.value =
         "Not configured";
@@ -754,7 +1027,9 @@ function updateApiSettingsUI(
     } else {
 
       currentApiKey.value =
-        maskApiKey(apiKey);
+        maskApiKey(
+          apiKey
+        );
 
     }
 
@@ -767,10 +1042,16 @@ function updateApiSettingsUI(
 // MASK API KEY
 // ======================================================
 
-function maskApiKey(apiKey) {
+function maskApiKey(
+  apiKey
+) {
 
-  if (!apiKey) {
+  if (
+    !apiKey
+  ) {
+
     return "Not configured";
+
   }
 
 
@@ -784,9 +1065,18 @@ function maskApiKey(apiKey) {
 
 
   return (
-    apiKey.slice(0, 4) +
+
+    apiKey.slice(
+      0,
+      4
+    ) +
+
     "••••••••" +
-    apiKey.slice(-4)
+
+    apiKey.slice(
+      -4
+    )
+
   );
 
 }
@@ -796,38 +1086,50 @@ function maskApiKey(apiKey) {
 // SHOW / HIDE API KEY
 // ======================================================
 
-let apiKeyVisible = false;
+let apiKeyVisible =
+  false;
 
 
 btnShowApi.addEventListener(
+
   "click",
+
   async () => {
 
     try {
 
       const data =
         await chrome.storage.local.get({
-          apiKey: ""
+
+          apiKey:
+            ""
+
         });
 
 
       const apiKey =
         typeof data.apiKey === "string"
+
           ? data.apiKey
+
           : "";
 
 
-      if (!apiKey) {
+      if (
+        !apiKey
+      ) {
 
         currentApiKey.value =
           "Not configured";
 
-        apiKeyVisible = false;
+        apiKeyVisible =
+          false;
 
         btnShowApi.textContent =
           "Show";
 
         return;
+
       }
 
 
@@ -837,14 +1139,21 @@ btnShowApi.addEventListener(
 
       currentApiKey.value =
         apiKeyVisible
+
           ? apiKey
-          : maskApiKey(apiKey);
+
+          : maskApiKey(
+              apiKey
+            );
 
 
       btnShowApi.textContent =
         apiKeyVisible
+
           ? "Hide"
+
           : "Show";
+
 
     } catch (error) {
 
@@ -856,6 +1165,7 @@ btnShowApi.addEventListener(
     }
 
   }
+
 );
 
 
@@ -864,26 +1174,36 @@ btnShowApi.addEventListener(
 // ======================================================
 
 useApiToggle.addEventListener(
+
   "change",
+
   async () => {
 
     try {
 
       const data =
         await chrome.storage.local.get({
-          apiKey: ""
+
+          apiKey:
+            ""
+
         });
 
 
       const apiKey =
         typeof data.apiKey === "string"
+
           ? data.apiKey.trim()
+
           : "";
 
 
       if (
+
         useApiToggle.checked &&
+
         !apiKey
+
       ) {
 
         useApiToggle.checked =
@@ -894,7 +1214,9 @@ useApiToggle.addEventListener(
           "Please configure a Gemini API key first."
         );
 
+
         return;
+
       }
 
 
@@ -904,6 +1226,7 @@ useApiToggle.addEventListener(
           useApiToggle.checked
 
       });
+
 
     } catch (error) {
 
@@ -915,6 +1238,7 @@ useApiToggle.addEventListener(
     }
 
   }
+
 );
 
 
@@ -923,11 +1247,17 @@ useApiToggle.addEventListener(
 // ======================================================
 
 btnAdd.addEventListener(
+
   "click",
+
   async () => {
 
-    if (busy) {
+    if (
+      busy
+    ) {
+
       return;
+
     }
 
 
@@ -935,8 +1265,12 @@ btnAdd.addEventListener(
       ruleInput.value.trim();
 
 
-    if (!val) {
+    if (
+      !val
+    ) {
+
       return;
+
     }
 
 
@@ -950,7 +1284,10 @@ btnAdd.addEventListener(
           [],
 
         apiKey:
-          ""
+          "",
+
+        useApi:
+          true
 
       });
 
@@ -964,23 +1301,30 @@ btnAdd.addEventListener(
     ) {
 
       const shouldOpen =
-        adminPanel.style.display === "none";
+        adminPanel.style.display ===
+        "none";
 
 
       adminPanel.style.display =
         shouldOpen
+
           ? "block"
+
           : "none";
 
 
-      if (shouldOpen) {
+      if (
+        shouldOpen
+      ) {
 
         await renderRules();
 
       }
 
 
-      ruleInput.value = "";
+      ruleInput.value =
+        "";
+
 
       return;
 
@@ -988,41 +1332,27 @@ btnAdd.addEventListener(
 
 
     // ==================================================
-    // YOUTUBE URL -> GEMINI
+    // YOUTUBE URL
     // ==================================================
 
     if (
       isYouTubeUrl(val)
     ) {
 
-      if (!data.apiKey) {
-
-        alert(
-          "No Gemini API key configured."
-        );
-
-        return;
-
-      }
-
-
-      // Save the URL before the asynchronous request.
       const urlToAnalyze =
         val;
 
 
-      // Give this request its own generation ID.
       const myAnalysisGeneration =
         ++analysisGeneration;
 
 
-      // Do not lock the input or the entire popup.
       const originalValue =
         ruleInput.value;
 
 
       ruleInput.value =
-        "Analyzing video...";
+        "Extracting video keywords...";
 
 
       classifyYouTubeVideo(
@@ -1030,13 +1360,14 @@ btnAdd.addEventListener(
       )
 
         .then(
+
           async result => {
 
-            // Ignore outdated requests.
-
             if (
+
               myAnalysisGeneration !==
               analysisGeneration
+
             ) {
 
               return;
@@ -1044,34 +1375,17 @@ btnAdd.addEventListener(
             }
 
 
-            const generatedRule =
-              formatVideoRule(
+            const saved =
+              await saveVideoKeywords(
                 result
               );
 
 
             if (
-              !generatedRule
-            ) {
 
-              throw new Error(
-                "Cannot create a rule from the Gemini result."
-              );
-
-            }
-
-
-            await saveNewRule(
-              generatedRule
-            );
-
-
-            // Only clear the analysis message if
-            // the user has not changed the input.
-
-            if (
               ruleInput.value ===
-              "Analyzing video..."
+              "Extracting video keywords..."
+
             ) {
 
               ruleInput.value =
@@ -1079,10 +1393,40 @@ btnAdd.addEventListener(
 
             }
 
+
+            // ------------------------------------------------
+            // Show what was extracted.
+            // ------------------------------------------------
+
+            if (
+              saved.length > 0
+            ) {
+
+              console.log(
+                "[YT-Guard] Video analysis:",
+                buildAnalysisText(result)
+              );
+
+
+              console.log(
+                "[YT-Guard] Rules added:",
+                saved
+              );
+
+            } else {
+
+              console.log(
+                "[YT-Guard] No new rules were added."
+              );
+
+            }
+
           }
+
         )
 
         .catch(
+
           error => {
 
             console.error(
@@ -1092,8 +1436,10 @@ btnAdd.addEventListener(
 
 
             if (
+
               myAnalysisGeneration !==
               analysisGeneration
+
             ) {
 
               return;
@@ -1101,12 +1447,11 @@ btnAdd.addEventListener(
             }
 
 
-            // Do not overwrite user input
-            // if they changed it during analysis.
-
             if (
+
               ruleInput.value ===
-              "Analyzing video..."
+              "Extracting video keywords..."
+
             ) {
 
               ruleInput.value =
@@ -1116,10 +1461,13 @@ btnAdd.addEventListener(
 
 
             alert(
+
               `Cannot analyze video.\n\n${error.message}`
+
             );
 
           }
+
         );
 
 
@@ -1129,12 +1477,15 @@ btnAdd.addEventListener(
 
 
     // ==================================================
-    // TEXT -> RULE
+    // NORMAL TEXT RULE
     // ==================================================
 
-    busy = true;
+    busy =
+      true;
 
-    btnAdd.disabled = true;
+
+    btnAdd.disabled =
+      true;
 
 
     try {
@@ -1163,15 +1514,20 @@ btnAdd.addEventListener(
 
     } finally {
 
-      busy = false;
+      busy =
+        false;
 
-      btnAdd.disabled = false;
+
+      btnAdd.disabled =
+        false;
+
 
       ruleInput.focus();
 
     }
 
   }
+
 );
 
 
@@ -1180,7 +1536,9 @@ btnAdd.addEventListener(
 // ======================================================
 
 ruleInput.addEventListener(
+
   "keydown",
+
   event => {
 
     if (
@@ -1190,7 +1548,9 @@ ruleInput.addEventListener(
       event.preventDefault();
 
 
-      if (!busy) {
+      if (
+        !busy
+      ) {
 
         btnAdd.click();
 
@@ -1199,6 +1559,7 @@ ruleInput.addEventListener(
     }
 
   }
+
 );
 
 
@@ -1207,11 +1568,17 @@ ruleInput.addEventListener(
 // ======================================================
 
 btnClearAll.addEventListener(
+
   "click",
+
   async () => {
 
-    if (busy) {
+    if (
+      busy
+    ) {
+
       return;
+
     }
 
 
@@ -1221,8 +1588,12 @@ btnClearAll.addEventListener(
       );
 
 
-    if (!confirmed) {
+    if (
+      !confirmed
+    ) {
+
       return;
+
     }
 
 
@@ -1254,6 +1625,7 @@ btnClearAll.addEventListener(
     }
 
   }
+
 );
 
 
@@ -1262,11 +1634,17 @@ btnClearAll.addEventListener(
 // ======================================================
 
 btnUpdateKey.addEventListener(
+
   "click",
+
   async () => {
 
-    if (busy) {
+    if (
+      busy
+    ) {
+
       return;
+
     }
 
 
@@ -1274,8 +1652,12 @@ btnUpdateKey.addEventListener(
       changeApiKey.value.trim();
 
 
-    if (!newKey) {
+    if (
+      !newKey
+    ) {
+
       return;
+
     }
 
 
@@ -1297,8 +1679,11 @@ btnUpdateKey.addEventListener(
 
 
       updateApiSettingsUI(
+
         newKey,
+
         true
+
       );
 
 
@@ -1322,4 +1707,5 @@ btnUpdateKey.addEventListener(
     }
 
   }
+
 );
