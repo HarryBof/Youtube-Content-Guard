@@ -1,66 +1,57 @@
 const setupView =
-  document.getElementById("setup-view");
+document.getElementById("setup-view");
 
 const mainView =
-  document.getElementById("main-view");
-
+document.getElementById("main-view");
 
 const initApiKey =
-  document.getElementById("init-api-key");
+document.getElementById("init-api-key");
 
 const initPassword =
-  document.getElementById("init-password");
+document.getElementById("init-password");
 
 const btnSaveSetup =
-  document.getElementById("btn-save-setup");
-
+document.getElementById("btn-save-setup");
 
 const ruleInput =
-  document.getElementById("rule-input");
+document.getElementById("rule-input");
 
 const btnAdd =
-  document.getElementById("btn-add");
-
+document.getElementById("btn-add");
 
 const adminPanel =
-  document.getElementById("admin-panel");
+document.getElementById("admin-panel");
 
 const rulesList =
-  document.getElementById("rules-list");
-
+document.getElementById("rules-list");
 
 const btnClearAll =
-  document.getElementById("btn-clear-all");
-
+document.getElementById("btn-clear-all");
 
 const useApiToggle =
-  document.getElementById("use-api-toggle");
+document.getElementById("use-api-toggle");
 
 const currentApiKey =
-  document.getElementById("current-api-key");
+document.getElementById("current-api-key");
 
 const btnShowApi =
-  document.getElementById("btn-show-api");
-
+document.getElementById("btn-show-api");
 
 const changeApiKey =
-  document.getElementById("change-api-key");
+document.getElementById("change-api-key");
 
 const btnUpdateKey =
-  document.getElementById("btn-update-key");
-
+document.getElementById("btn-update-key");
 
 // ======================================================
 // STATE
 // ======================================================
 
 let busy =
-  false;
-
+false;
 
 let analysisGeneration =
-  0;
-
+0;
 
 // ======================================================
 // INITIALIZE POPUP
@@ -68,104 +59,108 @@ let analysisGeneration =
 
 async function initializePopup() {
 
-  try {
-
-    const data =
-      await chrome.storage.local.get({
-
-        apiKey:
-          "",
-
-        password:
-          "",
-
-        useApi:
-          true,
-
-        blockRules:
-          []
-
-      });
+try {
 
 
-    // Password is required.
-    // API key is optional.
+const data =
+  await chrome.storage.local.get({
 
-    if (
+    apiKey:
+      "",
 
-      !data.password ||
+    password:
+      "",
 
-      typeof data.password !== "string" ||
+    useApi:
+      true,
 
-      !data.password.trim()
+    blockRules:
+      []
 
-    ) {
-
-      setupView.style.display =
-        "flex";
-
-      mainView.style.display =
-        "none";
-
-      return;
-
-    }
+  });
 
 
-    if (
-      !Array.isArray(data.blockRules)
-    ) {
+// Password is required.
+// API key is optional.
 
-      await chrome.storage.local.set({
+if (
 
-        blockRules:
-          []
+  !data.password ||
 
-      });
+  typeof data.password !== "string" ||
 
-    }
+  !data.password.trim()
 
+) {
 
-    setupView.style.display =
-      "none";
+  setupView.style.display =
+    "flex";
 
-    mainView.style.display =
-      "block";
+  mainView.style.display =
+    "none";
 
-
-    updateApiSettingsUI(
-
-      typeof data.apiKey === "string"
-        ? data.apiKey
-        : "",
-
-      data.useApi !== false
-
-    );
-
-
-    ruleInput.focus();
-
-
-  } catch (error) {
-
-    console.error(
-      "[YT-Guard] Popup initialization error:",
-      error
-    );
-
-
-    alert(
-      "Unable to initialize the extension."
-    );
-
-  }
+  return;
 
 }
 
 
-initializePopup();
+if (
+  !Array.isArray(data.blockRules)
+) {
 
+  await chrome.storage.local.set({
+
+    blockRules:
+      []
+
+  });
+
+}
+
+
+setupView.style.display =
+  "none";
+
+mainView.style.display =
+  "block";
+
+
+updateApiSettingsUI(
+
+  typeof data.apiKey === "string"
+    ? data.apiKey
+    : "",
+
+  data.useApi !== false
+
+);
+
+
+await renderRules();
+
+
+ruleInput.focus();
+  
+
+} catch (error) {
+
+  
+console.error(
+  "[YT-Guard] Popup initialization error:",
+  error
+);
+
+
+alert(
+  "Unable to initialize the extension."
+);
+  
+
+}
+
+}
+
+initializePopup();
 
 // ======================================================
 // SAVE INITIAL SETUP
@@ -173,139 +168,143 @@ initializePopup();
 
 btnSaveSetup.addEventListener(
 
-  "click",
+"click",
 
-  async () => {
+async () => {
 
-    if (
-      busy
-    ) {
+  
+if (
+  busy
+) {
 
-      return;
+  return;
 
-    }
-
-
-    const key =
-      initApiKey.value.trim();
+}
 
 
-    const pass =
-      initPassword.value.trim();
+const key =
+  initApiKey.value.trim();
 
 
-    if (
-      !pass
-    ) {
-
-      alert(
-        "Please create a password."
-      );
+const pass =
+  initPassword.value.trim();
 
 
-      return;
+if (
+  !pass
+) {
 
-    }
-
-
-    busy =
-      true;
-
-
-    btnSaveSetup.disabled =
-      true;
+  alert(
+    "Please create a password."
+  );
 
 
-    try {
+  return;
 
-      const data =
-        await chrome.storage.local.get({
-
-          blockRules:
-            [],
-
-          useApi:
-            true
-
-        });
+}
 
 
-      await chrome.storage.local.set({
-
-        apiKey:
-          key,
-
-        password:
-          pass,
-
-        useApi:
-          key
-            ? data.useApi !== false
-            : false,
-
-        blockRules:
-          Array.isArray(data.blockRules)
-            ? data.blockRules
-            : []
-
-      });
+busy =
+  true;
 
 
-      setupView.style.display =
-        "none";
-
-      mainView.style.display =
-        "block";
+btnSaveSetup.disabled =
+  true;
 
 
-      initApiKey.value =
-        "";
+try {
 
-      initPassword.value =
-        "";
+  const data =
+    await chrome.storage.local.get({
 
+      blockRules:
+        [],
 
-      updateApiSettingsUI(
+      useApi:
+        true
 
-        key,
-
-        key
-          ? data.useApi !== false
-          : false
-
-      );
+    });
 
 
-      ruleInput.focus();
+  await chrome.storage.local.set({
+
+    apiKey:
+      key,
+
+    password:
+      pass,
+
+    useApi:
+      key
+        ? data.useApi !== false
+        : false,
+
+    blockRules:
+      Array.isArray(data.blockRules)
+        ? data.blockRules
+        : []
+
+  });
 
 
-    } catch (error) {
+  setupView.style.display =
+    "none";
 
-      console.error(
-        "[YT-Guard] Setup save error:",
-        error
-      );
-
-
-      alert(
-        "Unable to save setup."
-      );
+  mainView.style.display =
+    "block";
 
 
-    } finally {
+  initApiKey.value =
+    "";
 
-      busy =
-        false;
+  initPassword.value =
+    "";
 
-      btnSaveSetup.disabled =
-        false;
 
-    }
+  updateApiSettingsUI(
 
-  }
+    key,
+
+    key
+      ? data.useApi !== false
+      : false
+
+  );
+
+
+  await renderRules();
+
+
+  ruleInput.focus();
+
+
+} catch (error) {
+
+  console.error(
+    "[YT-Guard] Setup save error:",
+    error
+  );
+
+
+  alert(
+    "Unable to save setup."
+  );
+
+
+} finally {
+
+  busy =
+    false;
+
+  btnSaveSetup.disabled =
+    false;
+
+}
+  
+
+}
 
 );
-
 
 // ======================================================
 // ENTER SETUP
@@ -313,24 +312,25 @@ btnSaveSetup.addEventListener(
 
 initPassword.addEventListener(
 
-  "keydown",
+"keydown",
 
-  event => {
+event => {
 
-    if (
-      event.key === "Enter"
-    ) {
+  
+if (
+  event.key === "Enter"
+) {
 
-      event.preventDefault();
+  event.preventDefault();
 
-      btnSaveSetup.click();
+  btnSaveSetup.click();
 
-    }
+}
+  
 
-  }
+}
 
 );
-
 
 // ======================================================
 // YOUTUBE URL PARSER
@@ -338,836 +338,1175 @@ initPassword.addEventListener(
 
 function parseYouTubeUrl(text) {
 
-  try {
+try {
 
-    const normalized =
-      /^https?:\/\//i.test(text)
+  
+const normalized =
+  /^https?:\/\//i.test(text)
 
-        ? text
+    ? text
 
-        : `https://${text}`;
-
-
-    const url =
-      new URL(normalized);
+    : `https://${text}`;
 
 
-    const hostname =
-      url.hostname.toLowerCase();
+const url =
+  new URL(normalized);
 
 
-    // youtu.be
-
-    if (
-      hostname === "youtu.be"
-    ) {
-
-      const videoId =
-        url.pathname
-          .split("/")
-          .filter(Boolean)[0];
+const hostname =
+  url.hostname.toLowerCase();
 
 
-      if (
+// ==================================================
+// YOUTU.BE
+// ==================================================
 
-        !videoId ||
+if (
+  hostname === "youtu.be"
+) {
 
-        !/^[A-Za-z0-9_-]{6,20}$/.test(videoId)
-
-      ) {
-
-        return null;
-
-      }
-
-
-      return {
-
-        videoId,
-
-        canonicalUrl:
-          `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`
-
-      };
-
-    }
+  const videoId =
+    url.pathname
+      .split("/")
+      .filter(Boolean)[0];
 
 
-    // youtube.com/watch
+  if (
 
-    if (
+    !videoId ||
 
-      hostname === "youtube.com" ||
+    !/^[A-Za-z0-9_-]{6,20}$/.test(videoId)
 
-      hostname === "www.youtube.com" ||
-
-      hostname.endsWith(".youtube.com")
-
-    ) {
-
-      if (
-        url.pathname !== "/watch"
-      ) {
-
-        return null;
-
-      }
-
-
-      const videoId =
-        url.searchParams.get("v");
-
-
-      if (
-
-        !videoId ||
-
-        !/^[A-Za-z0-9_-]{6,20}$/.test(videoId)
-
-      ) {
-
-        return null;
-
-      }
-
-
-      return {
-
-        videoId,
-
-        canonicalUrl:
-          `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`
-
-      };
-
-    }
-
-
-    return null;
-
-
-  } catch {
+  ) {
 
     return null;
 
   }
-
-}
-
-
-function isYouTubeUrl(text) {
-
-  return Boolean(
-    parseYouTubeUrl(text)
-  );
-
-}
-
-
-// ======================================================
-// RENDER RULES
-// ======================================================
-
-async function renderRules() {
-
-  try {
-
-    const data =
-      await chrome.storage.local.get({
-
-        blockRules:
-          []
-
-      });
-
-
-    const rules =
-      Array.isArray(data.blockRules)
-
-        ? data.blockRules
-
-        : [];
-
-
-    rulesList.innerHTML =
-      "";
-
-
-    rules.forEach(
-
-      rule => {
-
-        const li =
-          document.createElement("li");
-
-
-        const btnRemove =
-          document.createElement("button");
-
-
-        btnRemove.className =
-          "btn-remove";
-
-
-        btnRemove.textContent =
-          "-";
-
-
-        btnRemove.title =
-          "Remove this rule";
-
-
-        btnRemove.addEventListener(
-
-          "click",
-
-          async () => {
-
-            try {
-
-              const latest =
-                await chrome.storage.local.get({
-
-                  blockRules:
-                    []
-
-                });
-
-
-              const latestRules =
-                Array.isArray(
-                  latest.blockRules
-                )
-
-                  ? [...latest.blockRules]
-
-                  : [];
-
-
-              const removeIndex =
-                latestRules.indexOf(
-                  rule
-                );
-
-
-              if (
-                removeIndex !== -1
-              ) {
-
-                latestRules.splice(
-
-                  removeIndex,
-
-                  1
-
-                );
-
-              }
-
-
-              await chrome.storage.local.set({
-
-                blockRules:
-                  latestRules
-
-              });
-
-
-              await renderRules();
-
-
-            } catch (error) {
-
-              console.error(
-                "[YT-Guard] Error removing rule:",
-                error
-              );
-
-            }
-
-          }
-
-        );
-
-
-        const span =
-          document.createElement("span");
-
-
-        span.className =
-          "item-text";
-
-
-        span.textContent =
-          rule;
-
-
-        li.appendChild(
-          btnRemove
-        );
-
-
-        li.appendChild(
-          span
-        );
-
-
-        rulesList.appendChild(
-          li
-        );
-
-      }
-
-    );
-
-
-  } catch (error) {
-
-    console.error(
-      "[YT-Guard] Error rendering rules:",
-      error
-    );
-
-  }
-
-}
-
-
-// ======================================================
-// SAVE ONE RULE
-// ======================================================
-
-async function saveNewRule(
-  newRule
-) {
-
-  const cleanRule =
-    String(
-      newRule || ""
-    ).trim();
-
-
-  if (
-    !cleanRule
-  ) {
-
-    return false;
-
-  }
-
-
-  const data =
-    await chrome.storage.local.get({
-
-      blockRules:
-        []
-
-    });
-
-
-  const currentRules =
-    Array.isArray(
-      data.blockRules
-    )
-
-      ? [...data.blockRules]
-
-      : [];
-
-
-  const duplicate =
-    currentRules.some(
-
-      rule =>
-
-        String(rule)
-          .trim()
-          .toLowerCase() ===
-
-        cleanRule.toLowerCase()
-
-    );
-
-
-  if (
-    duplicate
-  ) {
-
-    return false;
-
-  }
-
-
-  currentRules.push(
-    cleanRule
-  );
-
-
-  await chrome.storage.local.set({
-
-    blockRules:
-      currentRules
-
-  });
-
-
-  if (
-    adminPanel.style.display ===
-    "block"
-  ) {
-
-    await renderRules();
-
-  }
-
-
-  return true;
-
-}
-
-
-// ======================================================
-// SAVE MULTIPLE VIDEO KEYWORDS
-// ======================================================
-//
-// Each keyword becomes its own blocking rule.
-//
-// Example:
-//
-// Channel:
-// ChessNetwork
-//
-// Keywords:
-// Magnus Carlsen
-// Hikaru Nakamura
-// Speed Chess Championship
-//
-// Stored as:
-//
-// ChessNetwork
-// Magnus Carlsen
-// Hikaru Nakamura
-// Speed Chess Championship
-//
-
-async function saveVideoKeywords(
-  result
-) {
-
-  const keywords =
-    Array.isArray(
-      result.keywords
-    )
-
-      ? result.keywords
-
-          .map(
-            keyword =>
-              String(keyword).trim()
-          )
-
-          .filter(Boolean)
-
-      : [];
-
-
-  const channel =
-    typeof result.channel === "string"
-
-      ? result.channel.trim()
-
-      : "";
-
-
-  const candidates = [
-
-    channel,
-
-    ...keywords
-
-  ];
-
-
-  const saved = [];
-
-
-  for (
-    const candidate of candidates
-  ) {
-
-    const added =
-      await saveNewRule(
-        candidate
-      );
-
-
-    if (
-      added
-    ) {
-
-      saved.push(
-        candidate
-      );
-
-    }
-
-  }
-
-
-  return saved;
-
-}
-
-
-// ======================================================
-// CLASSIFY / EXTRACT YOUTUBE VIDEO
-// ======================================================
-
-async function classifyYouTubeVideo(
-  url
-) {
-
-  const response =
-    await chrome.runtime.sendMessage({
-
-      action:
-        "SUMMARIZE_VIDEO",
-
-      url
-
-    });
-
-
-  if (
-    !response
-  ) {
-
-    throw new Error(
-      "No response received from the service worker."
-    );
-
-  }
-
-
-  if (
-    response.error
-  ) {
-
-    throw new Error(
-      response.error
-    );
-
-  }
-
-
-  if (
-
-    typeof response.title !== "string" ||
-
-    !response.title.trim()
-
-  ) {
-
-    throw new Error(
-      "Could not extract the YouTube title."
-    );
-
-  }
-
-
-  const channel =
-    typeof response.channel === "string"
-
-      ? response.channel.trim()
-
-      : "";
-
-
-  const keywords =
-    Array.isArray(response.keywords)
-
-      ? response.keywords
-
-          .filter(
-            keyword =>
-              typeof keyword === "string" &&
-              keyword.trim()
-          )
-
-          .map(
-            keyword =>
-              keyword.trim()
-          )
-
-      : [];
 
 
   return {
 
-    title:
-      response.title.trim(),
+    videoId,
 
-    channel,
-
-    keywords,
-
-    localKeywords:
-      Array.isArray(response.localKeywords)
-
-        ? response.localKeywords
-
-        : [],
-
-    aiKeywords:
-      Array.isArray(response.aiKeywords)
-
-        ? response.aiKeywords
-
-        : [],
-
-    aiUsed:
-      response.aiUsed === true
+    canonicalUrl:
+      `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`
 
   };
 
 }
 
 
+// ==================================================
+// YOUTUBE.COM
+// ==================================================
+
+if (
+
+  hostname === "youtube.com" ||
+
+  hostname === "www.youtube.com" ||
+
+  hostname.endsWith(".youtube.com")
+
+) {
+
+  if (
+    url.pathname !== "/watch"
+  ) {
+
+    return null;
+
+  }
+
+
+  const videoId =
+    url.searchParams.get("v");
+
+
+  if (
+
+    !videoId ||
+
+    !/^[A-Za-z0-9_-]{6,20}$/.test(videoId)
+
+  ) {
+
+    return null;
+
+  }
+
+
+  return {
+
+    videoId,
+
+    canonicalUrl:
+      `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`
+
+  };
+
+}
+
+
+return null;
+  
+
+} catch {
+
+  
+return null;
+  
+
+}
+
+}
+
+function isYouTubeUrl(text) {
+
+return Boolean(
+parseYouTubeUrl(text)
+);
+
+}
+
+// ======================================================
+// GET RULE VALUE
+// ======================================================
+//
+// Supports both:
+//
+// New format:
+// {
+//   value: "chess",
+//   type: "keyword"
+// }
+//
+// Legacy format:
+// "chess"
+//
+// Legacy rules are treated as metadata by the
+// service worker for backward compatibility.
+// ======================================================
+
+function getRuleValue(rule) {
+
+if (
+
+  
+rule &&
+
+typeof rule === "object" &&
+
+typeof rule.value === "string"
+  
+
+) {
+
+  
+return rule.value.trim();
+  
+
+}
+
+if (
+typeof rule === "string"
+) {
+
+  
+return rule.trim();
+  
+
+}
+
+return "";
+
+}
+
+// ======================================================
+// GET RULE TYPE
+// ======================================================
+
+function getRuleType(rule) {
+
+if (
+
+  
+rule &&
+
+typeof rule === "object" &&
+
+rule.type === "keyword"
+  
+
+) {
+
+  
+return "keyword";
+  
+
+}
+
+return "metadata";
+
+}
+
+// ======================================================
+// RENDER RULES
+// ======================================================
+//
+// The rule type is intentionally hidden.
+//
+// Example UI:
+//
+// chess
+// GothamChess
+// Minecraft
+//
+// No [keyword] or [metadata] tag is displayed.
+// ======================================================
+
+async function renderRules() {
+
+try {
+
+  
+const data =
+  await chrome.storage.local.get({
+
+    blockRules:
+      []
+
+  });
+
+
+const rules =
+  Array.isArray(data.blockRules)
+
+    ? data.blockRules
+
+    : [];
+
+
+rulesList.innerHTML =
+  "";
+
+
+rules.forEach(
+
+  rule => {
+
+    const ruleValue =
+      getRuleValue(rule);
+
+
+    if (
+      !ruleValue
+    ) {
+
+      return;
+
+    }
+
+
+    const li =
+      document.createElement("li");
+
+
+    const btnRemove =
+      document.createElement("button");
+
+
+    btnRemove.className =
+      "btn-remove";
+
+
+    btnRemove.textContent =
+      "-";
+
+
+    btnRemove.title =
+      "Remove this rule";
+
+
+    btnRemove.addEventListener(
+
+      "click",
+
+      async () => {
+
+        try {
+
+          const latest =
+            await chrome.storage.local.get({
+
+              blockRules:
+                []
+
+            });
+
+
+          const latestRules =
+            Array.isArray(
+              latest.blockRules
+            )
+
+              ? [...latest.blockRules]
+
+              : [];
+
+
+          const removeIndex =
+            latestRules.findIndex(
+
+              existingRule => {
+
+                const existingValue =
+                  getRuleValue(
+                    existingRule
+                  );
+
+
+                const existingType =
+                  getRuleType(
+                    existingRule
+                  );
+
+
+                const currentType =
+                  getRuleType(
+                    rule
+                  );
+
+
+                return (
+
+                  existingValue.toLowerCase() ===
+                    ruleValue.toLowerCase() &&
+
+                  existingType ===
+                    currentType
+
+                );
+
+              }
+
+            );
+
+
+          if (
+            removeIndex !== -1
+          ) {
+
+            latestRules.splice(
+
+              removeIndex,
+
+              1
+
+            );
+
+          }
+
+
+          await chrome.storage.local.set({
+
+            blockRules:
+              latestRules
+
+          });
+
+
+          await renderRules();
+
+
+        } catch (error) {
+
+          console.error(
+            "[YT-Guard] Error removing rule:",
+            error
+          );
+
+        }
+
+      }
+
+    );
+
+
+    const span =
+      document.createElement("span");
+
+
+    span.className =
+      "item-text";
+
+
+    span.textContent =
+      ruleValue;
+
+
+    li.appendChild(
+      btnRemove
+    );
+
+
+    li.appendChild(
+      span
+    );
+
+
+    rulesList.appendChild(
+      li
+    );
+
+  }
+
+);
+  
+
+} catch (error) {
+
+  
+console.error(
+  "[YT-Guard] Error rendering rules:",
+  error
+);
+  
+
+}
+
+}
+
+// ======================================================
+// SAVE ONE KEYWORD RULE
+// ======================================================
+//
+// Normal text entered manually is stored as:
+//
+// {
+//   value: "chess",
+//   type: "keyword"
+// }
+//
+// The type is hidden from the UI.
+// ======================================================
+
+async function saveNewRule(
+newRule
+) {
+
+const cleanRule =
+String(
+newRule || ""
+).trim();
+
+if (
+!cleanRule
+) {
+
+  
+return false;
+  
+
+}
+
+const data =
+await chrome.storage.local.get({
+
+  
+  blockRules:
+    []
+
+});
+  
+
+const currentRules =
+Array.isArray(
+data.blockRules
+)
+
+  
+  ? [...data.blockRules]
+
+  : [];
+  
+
+const duplicate =
+currentRules.some(
+
+  
+  rule => {
+
+    const value =
+      getRuleValue(rule);
+
+
+    return (
+
+      value &&
+
+      value.toLowerCase() ===
+        cleanRule.toLowerCase()
+
+    );
+
+  }
+
+);
+  
+
+if (
+duplicate
+) {
+
+  
+return false;
+  
+
+}
+
+currentRules.push({
+
+  
+value:
+  cleanRule,
+
+type:
+  "keyword"
+  
+
+});
+
+await chrome.storage.local.set({
+
+  
+blockRules:
+  currentRules
+  
+
+});
+
+if (
+adminPanel.style.display ===
+"block"
+) {
+
+  
+await renderRules();
+  
+
+}
+
+return true;
+
+}
+
+// ======================================================
+// SAVE VIDEO KEYWORDS
+// ======================================================
+//
+// Channel:
+// Stored as metadata.
+//
+// Extracted keywords:
+// Stored as keyword rules.
+//
+// Example:
+//
+// Channel:
+// GothamChess
+//
+// Keywords:
+// Magnus Carlsen
+// Hikaru Nakamura
+//
+// Internal storage:
+//
+// {
+//   value: "GothamChess",
+//   type: "metadata"
+// }
+//
+// {
+//   value: "Magnus Carlsen",
+//   type: "keyword"
+// }
+//
+// The types are never displayed in the UI.
+// ======================================================
+
+async function saveVideoKeywords(
+result
+) {
+
+const keywords =
+Array.isArray(
+result.keywords
+)
+
+  
+  ? result.keywords
+
+      .map(
+        keyword =>
+          String(keyword).trim()
+      )
+
+      .filter(Boolean)
+
+  : [];
+  
+
+const channel =
+typeof result.channel === "string"
+
+  
+  ? result.channel.trim()
+
+  : "";
+  
+
+const saved = [];
+
+const data =
+await chrome.storage.local.get({
+
+  
+  blockRules:
+    []
+
+});
+  
+
+const currentRules =
+Array.isArray(data.blockRules)
+
+  
+  ? [...data.blockRules]
+
+  : [];
+  
+
+// ====================================================
+// ADD RULE HELPER
+// ====================================================
+
+function addRule(
+value,
+type
+) {
+
+  
+const clean =
+  String(value || "").trim();
+
+
+if (
+  !clean
+) {
+
+  return false;
+
+}
+
+
+const duplicate =
+  currentRules.some(
+
+    existingRule => {
+
+      const existingValue =
+        getRuleValue(
+          existingRule
+        );
+
+
+      const existingType =
+        getRuleType(
+          existingRule
+        );
+
+
+      return (
+
+        existingValue &&
+
+        existingValue.toLowerCase() ===
+          clean.toLowerCase() &&
+
+        existingType ===
+          type
+
+      );
+
+    }
+
+  );
+
+
+if (
+  duplicate
+) {
+
+  return false;
+
+}
+
+
+currentRules.push({
+
+  value:
+    clean,
+
+  type:
+    type
+
+});
+
+
+saved.push(
+  clean
+);
+
+
+return true;
+  
+
+}
+
+// ====================================================
+// CHANNEL
+// ====================================================
+
+if (
+channel
+) {
+
+  
+addRule(
+
+  channel,
+
+  "metadata"
+
+);
+  
+
+}
+
+// ====================================================
+// KEYWORDS
+// ====================================================
+
+for (
+const keyword of keywords
+) {
+
+  
+addRule(
+
+  keyword,
+
+  "keyword"
+
+);
+  
+
+}
+
+await chrome.storage.local.set({
+
+  
+blockRules:
+  currentRules
+  
+
+});
+
+if (
+adminPanel.style.display ===
+"block"
+) {
+
+  
+await renderRules();
+  
+
+}
+
+return saved;
+
+}
+
+// ======================================================
+// CLASSIFY / EXTRACT YOUTUBE VIDEO
+// ======================================================
+
+async function classifyYouTubeVideo(
+url
+) {
+
+const response =
+await chrome.runtime.sendMessage({
+
+  
+  action:
+    "SUMMARIZE_VIDEO",
+
+  url
+
+});
+  
+
+if (
+!response
+) {
+
+  
+throw new Error(
+  "No response received from the service worker."
+);
+  
+
+}
+
+if (
+response.error
+) {
+
+  
+throw new Error(
+  response.error
+);
+  
+
+}
+
+if (
+
+  
+typeof response.title !== "string" ||
+
+!response.title.trim()
+  
+
+) {
+
+  
+throw new Error(
+  "Could not extract the YouTube title."
+);
+  
+
+}
+
+const channel =
+typeof response.channel === "string"
+
+  
+  ? response.channel.trim()
+
+  : "";
+  
+
+const keywords =
+Array.isArray(response.keywords)
+
+  
+  ? response.keywords
+
+      .filter(
+
+        keyword =>
+
+          typeof keyword === "string" &&
+
+          keyword.trim()
+
+      )
+
+      .map(
+
+        keyword =>
+
+          keyword.trim()
+
+      )
+
+  : [];
+  
+
+return {
+
+  
+title:
+  response.title.trim(),
+
+channel,
+
+keywords,
+
+localKeywords:
+  Array.isArray(response.localKeywords)
+
+    ? response.localKeywords
+
+    : [],
+
+aiKeywords:
+  Array.isArray(response.aiKeywords)
+
+    ? response.aiKeywords
+
+    : [],
+
+aiUsed:
+  response.aiUsed === true
+  
+
+};
+
+}
+
 // ======================================================
 // DISPLAY ANALYSIS RESULT
 // ======================================================
 
 function buildAnalysisText(
-  result
+result
 ) {
 
-  const lines = [];
+const lines = [];
 
+lines.push(
+`Title: ${result.title}`
+);
 
-  lines.push(
-    `Title: ${result.title}`
-  );
+if (
+result.channel
+) {
 
-
-  if (
-    result.channel
-  ) {
-
-    lines.push(
-      `Channel: ${result.channel}`
-    );
-
-  }
-
-
-  if (
-    result.keywords.length > 0
-  ) {
-
-    lines.push(
-      `Keywords: ${result.keywords.join(", ")}`
-    );
-
-  }
-
-
-  lines.push(
-
-    result.aiUsed
-
-      ? "Gemini: added specific keywords"
-
-      : "Gemini: not used"
-
-  );
-
-
-  return lines.join(
-    "\n"
-  );
+  
+lines.push(
+  `Channel: ${result.channel}`
+);
+  
 
 }
 
+if (
+result.keywords.length > 0
+) {
+
+  
+lines.push(
+  `Keywords: ${result.keywords.join(", ")}`
+);
+  
+
+}
+
+lines.push(
+
+  
+result.aiUsed
+
+  ? "Gemini: added specific keywords"
+
+  : "Gemini: not used"
+  
+
+);
+
+return lines.join(
+"\n"
+);
+
+}
 
 // ======================================================
 // UPDATE API SETTINGS UI
 // ======================================================
 
 function updateApiSettingsUI(
-  apiKey,
-  useApi
+apiKey,
+useApi
 ) {
 
-  if (
-    !useApiToggle
-  ) {
+if (
+!useApiToggle
+) {
 
-    return;
-
-  }
-
-
-  useApiToggle.checked =
-    Boolean(
-      useApi && apiKey
-    );
-
-
-  if (
-    currentApiKey
-  ) {
-
-    if (
-      !apiKey
-    ) {
-
-      currentApiKey.value =
-        "Not configured";
-
-    } else {
-
-      currentApiKey.value =
-        maskApiKey(
-          apiKey
-        );
-
-    }
-
-  }
+  
+return;
+  
 
 }
 
+useApiToggle.checked =
+Boolean(
+useApi && apiKey
+);
+
+if (
+currentApiKey
+) {
+
+  
+if (
+  !apiKey
+) {
+
+  currentApiKey.value =
+    "Not configured";
+
+} else {
+
+  currentApiKey.value =
+    maskApiKey(
+      apiKey
+    );
+
+}
+  
+
+}
+
+}
 
 // ======================================================
 // MASK API KEY
 // ======================================================
 
 function maskApiKey(
-  apiKey
+apiKey
 ) {
 
-  if (
-    !apiKey
-  ) {
+if (
+!apiKey
+) {
 
-    return "Not configured";
-
-  }
-
-
-  if (
-    apiKey.length <= 8
-  ) {
-
-    return "••••••••";
-
-  }
-
-
-  return (
-
-    apiKey.slice(
-      0,
-      4
-    ) +
-
-    "••••••••" +
-
-    apiKey.slice(
-      -4
-    )
-
-  );
+  
+return "Not configured";
+  
 
 }
 
+if (
+apiKey.length <= 8
+) {
+
+  
+return "••••••••";
+  
+
+}
+
+return (
+
+  
+apiKey.slice(
+  0,
+  4
+) +
+
+"••••••••" +
+
+apiKey.slice(
+  -4
+)
+  
+
+);
+
+}
 
 // ======================================================
 // SHOW / HIDE API KEY
 // ======================================================
 
 let apiKeyVisible =
-  false;
-
+false;
 
 btnShowApi.addEventListener(
 
-  "click",
+"click",
 
-  async () => {
+async () => {
 
-    try {
+  
+try {
 
-      const data =
-        await chrome.storage.local.get({
+  const data =
+    await chrome.storage.local.get({
 
-          apiKey:
-            ""
+      apiKey:
+        ""
 
-        });
-
-
-      const apiKey =
-        typeof data.apiKey === "string"
-
-          ? data.apiKey
-
-          : "";
+    });
 
 
-      if (
-        !apiKey
-      ) {
+  const apiKey =
+    typeof data.apiKey === "string"
 
-        currentApiKey.value =
-          "Not configured";
+      ? data.apiKey
 
-        apiKeyVisible =
-          false;
-
-        btnShowApi.textContent =
-          "Show";
-
-        return;
-
-      }
+      : "";
 
 
-      apiKeyVisible =
-        !apiKeyVisible;
+  if (
+    !apiKey
+  ) {
 
+    currentApiKey.value =
+      "Not configured";
 
-      currentApiKey.value =
-        apiKeyVisible
+    apiKeyVisible =
+      false;
 
-          ? apiKey
+    btnShowApi.textContent =
+      "Show";
 
-          : maskApiKey(
-              apiKey
-            );
-
-
-      btnShowApi.textContent =
-        apiKeyVisible
-
-          ? "Hide"
-
-          : "Show";
-
-
-    } catch (error) {
-
-      console.error(
-        "[YT-Guard] Error displaying API key:",
-        error
-      );
-
-    }
+    return;
 
   }
 
-);
 
+  apiKeyVisible =
+    !apiKeyVisible;
+
+
+  currentApiKey.value =
+    apiKeyVisible
+
+      ? apiKey
+
+      : maskApiKey(
+          apiKey
+        );
+
+
+  btnShowApi.textContent =
+    apiKeyVisible
+
+      ? "Hide"
+
+      : "Show";
+
+
+} catch (error) {
+
+  console.error(
+    "[YT-Guard] Error displaying API key:",
+    error
+  );
+
+}
+  
+
+}
+
+);
 
 // ======================================================
 // AI TOGGLE
@@ -1175,72 +1514,73 @@ btnShowApi.addEventListener(
 
 useApiToggle.addEventListener(
 
-  "change",
+"change",
 
-  async () => {
+async () => {
 
-    try {
+  
+try {
 
-      const data =
-        await chrome.storage.local.get({
+  const data =
+    await chrome.storage.local.get({
 
-          apiKey:
-            ""
+      apiKey:
+        ""
 
-        });
-
-
-      const apiKey =
-        typeof data.apiKey === "string"
-
-          ? data.apiKey.trim()
-
-          : "";
+    });
 
 
-      if (
+  const apiKey =
+    typeof data.apiKey === "string"
 
-        useApiToggle.checked &&
+      ? data.apiKey.trim()
 
-        !apiKey
-
-      ) {
-
-        useApiToggle.checked =
-          false;
+      : "";
 
 
-        alert(
-          "Please configure a Gemini API key first."
-        );
+  if (
+
+    useApiToggle.checked &&
+
+    !apiKey
+
+  ) {
+
+    useApiToggle.checked =
+      false;
 
 
-        return;
-
-      }
-
-
-      await chrome.storage.local.set({
-
-        useApi:
-          useApiToggle.checked
-
-      });
+    alert(
+      "Please configure a Gemini API key first."
+    );
 
 
-    } catch (error) {
-
-      console.error(
-        "[YT-Guard] Error updating AI setting:",
-        error
-      );
-
-    }
+    return;
 
   }
 
-);
 
+  await chrome.storage.local.set({
+
+    useApi:
+      useApiToggle.checked
+
+  });
+
+
+} catch (error) {
+
+  console.error(
+    "[YT-Guard] Error updating AI setting:",
+    error
+  );
+
+}
+  
+
+}
+
+);
 
 // ======================================================
 // ADD BUTTON
@@ -1248,288 +1588,304 @@ useApiToggle.addEventListener(
 
 btnAdd.addEventListener(
 
-  "click",
+"click",
 
-  async () => {
+async () => {
 
-    if (
-      busy
-    ) {
+  
+if (
+  busy
+) {
 
-      return;
+  return;
 
-    }
+}
 
 
-    const val =
-      ruleInput.value.trim();
+const val =
+  ruleInput.value.trim();
 
 
-    if (
-      !val
-    ) {
+if (
+  !val
+) {
 
-      return;
+  return;
 
-    }
+}
 
 
-    const data =
-      await chrome.storage.local.get({
+const data =
+  await chrome.storage.local.get({
 
-        password:
-          "",
+    password:
+      "",
 
-        blockRules:
-          [],
+    blockRules:
+      [],
 
-        apiKey:
-          "",
+    apiKey:
+      "",
 
-        useApi:
-          true
+    useApi:
+      true
 
-      });
+  });
 
 
-    // ==================================================
-    // PASSWORD -> ADMIN PANEL
-    // ==================================================
+// ==================================================
+// PASSWORD -> ADMIN PANEL
+// ==================================================
 
-    if (
-      val === data.password
-    ) {
+if (
+  val === data.password
+) {
 
-      const shouldOpen =
-        adminPanel.style.display ===
-        "none";
+  const shouldOpen =
+    adminPanel.style.display ===
+    "none";
 
 
-      adminPanel.style.display =
-        shouldOpen
+  adminPanel.style.display =
+    shouldOpen
 
-          ? "block"
+      ? "block"
 
-          : "none";
+      : "none";
 
 
-      if (
-        shouldOpen
-      ) {
+  if (
+    shouldOpen
+  ) {
 
-        await renderRules();
-
-      }
-
-
-      ruleInput.value =
-        "";
-
-
-      return;
-
-    }
-
-
-    // ==================================================
-    // YOUTUBE URL
-    // ==================================================
-
-    if (
-      isYouTubeUrl(val)
-    ) {
-
-      const urlToAnalyze =
-        val;
-
-
-      const myAnalysisGeneration =
-        ++analysisGeneration;
-
-
-      const originalValue =
-        ruleInput.value;
-
-
-      ruleInput.value =
-        "Extracting video keywords...";
-
-
-      classifyYouTubeVideo(
-        urlToAnalyze
-      )
-
-        .then(
-
-          async result => {
-
-            if (
-
-              myAnalysisGeneration !==
-              analysisGeneration
-
-            ) {
-
-              return;
-
-            }
-
-
-            const saved =
-              await saveVideoKeywords(
-                result
-              );
-
-
-            if (
-
-              ruleInput.value ===
-              "Extracting video keywords..."
-
-            ) {
-
-              ruleInput.value =
-                "";
-
-            }
-
-
-            // ------------------------------------------------
-            // Show what was extracted.
-            // ------------------------------------------------
-
-            if (
-              saved.length > 0
-            ) {
-
-              console.log(
-                "[YT-Guard] Video analysis:",
-                buildAnalysisText(result)
-              );
-
-
-              console.log(
-                "[YT-Guard] Rules added:",
-                saved
-              );
-
-            } else {
-
-              console.log(
-                "[YT-Guard] No new rules were added."
-              );
-
-            }
-
-          }
-
-        )
-
-        .catch(
-
-          error => {
-
-            console.error(
-              "[YT-Guard] Error analyzing video:",
-              error
-            );
-
-
-            if (
-
-              myAnalysisGeneration !==
-              analysisGeneration
-
-            ) {
-
-              return;
-
-            }
-
-
-            if (
-
-              ruleInput.value ===
-              "Extracting video keywords..."
-
-            ) {
-
-              ruleInput.value =
-                originalValue;
-
-            }
-
-
-            alert(
-
-              `Cannot analyze video.\n\n${error.message}`
-
-            );
-
-          }
-
-        );
-
-
-      return;
-
-    }
-
-
-    // ==================================================
-    // NORMAL TEXT RULE
-    // ==================================================
-
-    busy =
-      true;
-
-
-    btnAdd.disabled =
-      true;
-
-
-    try {
-
-      await saveNewRule(
-        val
-      );
-
-
-      ruleInput.value =
-        "";
-
-
-    } catch (error) {
-
-      console.error(
-        "[YT-Guard] Error adding rule:",
-        error
-      );
-
-
-      alert(
-        `Cannot add rule.\n\n${error.message}`
-      );
-
-
-    } finally {
-
-      busy =
-        false;
-
-
-      btnAdd.disabled =
-        false;
-
-
-      ruleInput.focus();
-
-    }
+    await renderRules();
 
   }
 
-);
 
+  ruleInput.value =
+    "";
+
+
+  return;
+
+}
+
+
+// ==================================================
+// YOUTUBE URL
+// ==================================================
+
+if (
+  isYouTubeUrl(val)
+) {
+
+  const urlToAnalyze =
+    val;
+
+
+  const myAnalysisGeneration =
+    ++analysisGeneration;
+
+
+  const originalValue =
+    ruleInput.value;
+
+
+  ruleInput.value =
+    "Extracting video keywords...";
+
+
+  classifyYouTubeVideo(
+    urlToAnalyze
+  )
+
+    .then(
+
+      async result => {
+
+        if (
+
+          myAnalysisGeneration !==
+          analysisGeneration
+
+        ) {
+
+          return;
+
+        }
+
+
+        const saved =
+          await saveVideoKeywords(
+            result
+          );
+
+
+        if (
+
+          ruleInput.value ===
+          "Extracting video keywords..."
+
+        ) {
+
+          ruleInput.value =
+            "";
+
+        }
+
+
+        // =================================================
+        // SHOW ANALYSIS IN CONSOLE ONLY
+        // =================================================
+
+        if (
+          saved.length > 0
+        ) {
+
+          console.log(
+            "[YT-Guard] Video analysis:",
+            buildAnalysisText(result)
+          );
+
+
+          console.log(
+            "[YT-Guard] Rules added:",
+            saved
+          );
+
+        } else {
+
+          console.log(
+            "[YT-Guard] No new rules were added."
+          );
+
+        }
+
+      }
+
+    )
+
+    .catch(
+
+      error => {
+
+        console.error(
+          "[YT-Guard] Error analyzing video:",
+          error
+        );
+
+
+        if (
+
+          myAnalysisGeneration !==
+          analysisGeneration
+
+        ) {
+
+          return;
+
+        }
+
+
+        if (
+
+          ruleInput.value ===
+          "Extracting video keywords..."
+
+        ) {
+
+          ruleInput.value =
+            originalValue;
+
+        }
+
+
+        alert(
+
+          `Cannot analyze video.\n\n${error.message}`
+
+        );
+
+      }
+
+    );
+
+
+  return;
+
+}
+
+
+// ==================================================
+// NORMAL TEXT RULE
+// ==================================================
+//
+// Manually entered rules are KEYWORD rules.
+//
+// Example:
+//
+// chess
+//
+// matches:
+//
+// "The Best Chess Game I Ever Played"
+//
+// and:
+//
+// "GothamChess"
+// ==================================================
+
+busy =
+  true;
+
+
+btnAdd.disabled =
+  true;
+
+
+try {
+
+  await saveNewRule(
+    val
+  );
+
+
+  ruleInput.value =
+    "";
+
+
+} catch (error) {
+
+  console.error(
+    "[YT-Guard] Error adding rule:",
+    error
+  );
+
+
+  alert(
+    `Cannot add rule.\n\n${error.message}`
+  );
+
+
+} finally {
+
+  busy =
+    false;
+
+
+  btnAdd.disabled =
+    false;
+
+
+  ruleInput.focus();
+
+}
+  
+
+}
+
+);
 
 // ======================================================
 // ENTER KEY
@@ -1537,31 +1893,32 @@ btnAdd.addEventListener(
 
 ruleInput.addEventListener(
 
-  "keydown",
+"keydown",
 
-  event => {
+event => {
 
-    if (
-      event.key === "Enter"
-    ) {
+  
+if (
+  event.key === "Enter"
+) {
 
-      event.preventDefault();
+  event.preventDefault();
 
 
-      if (
-        !busy
-      ) {
+  if (
+    !busy
+  ) {
 
-        btnAdd.click();
-
-      }
-
-    }
+    btnAdd.click();
 
   }
 
-);
+}
+  
 
+}
+
+);
 
 // ======================================================
 // DELETE ALL RULES
@@ -1569,65 +1926,66 @@ ruleInput.addEventListener(
 
 btnClearAll.addEventListener(
 
-  "click",
+"click",
 
-  async () => {
+async () => {
 
-    if (
-      busy
-    ) {
+  
+if (
+  busy
+) {
 
-      return;
+  return;
 
-    }
-
-
-    const confirmed =
-      confirm(
-        "Are you sure you want to clear the entire block list?"
-      );
+}
 
 
-    if (
-      !confirmed
-    ) {
-
-      return;
-
-    }
+const confirmed =
+  confirm(
+    "Are you sure you want to clear the entire block list?"
+  );
 
 
-    try {
+if (
+  !confirmed
+) {
 
-      await chrome.storage.local.set({
+  return;
 
-        blockRules:
-          []
-
-      });
-
-
-      await renderRules();
+}
 
 
-    } catch (error) {
+try {
 
-      console.error(
-        "[YT-Guard] Error clearing all rules:",
-        error
-      );
+  await chrome.storage.local.set({
+
+    blockRules:
+      []
+
+  });
 
 
-      alert(
-        "Cannot clear the block list."
-      );
+  await renderRules();
 
-    }
 
-  }
+} catch (error) {
+
+  console.error(
+    "[YT-Guard] Error clearing all rules:",
+    error
+  );
+
+
+  alert(
+    "Cannot clear the block list."
+  );
+
+}
+
+
+}
 
 );
-
 
 // ======================================================
 // UPDATE API KEY
@@ -1635,77 +1993,77 @@ btnClearAll.addEventListener(
 
 btnUpdateKey.addEventListener(
 
-  "click",
+"click",
 
-  async () => {
+async () => {
 
-    if (
-      busy
-    ) {
+if (
+  busy
+) {
 
-      return;
+  return;
 
-    }
-
-
-    const newKey =
-      changeApiKey.value.trim();
+}
 
 
-    if (
-      !newKey
-    ) {
-
-      return;
-
-    }
+const newKey =
+  changeApiKey.value.trim();
 
 
-    try {
+if (
+  !newKey
+) {
 
-      await chrome.storage.local.set({
+  return;
 
-        apiKey:
-          newKey,
-
-        useApi:
-          true
-
-      });
+}
 
 
-      changeApiKey.value =
-        "";
+try {
+
+  await chrome.storage.local.set({
+
+    apiKey:
+      newKey,
+
+    useApi:
+      true
+
+  });
 
 
-      updateApiSettingsUI(
-
-        newKey,
-
-        true
-
-      );
+  changeApiKey.value =
+    "";
 
 
-      alert(
-        "API key updated successfully."
-      );
+  updateApiSettingsUI(
+
+    newKey,
+
+    true
+
+  );
 
 
-    } catch (error) {
-
-      console.error(
-        "[YT-Guard] Error updating API key:",
-        error
-      );
+  alert(
+    "API key updated successfully."
+  );
 
 
-      alert(
-        "Cannot update the API key."
-      );
+} catch (error) {
 
-    }
+  console.error(
+    "[YT-Guard] Error updating API key:",
+    error
+  );
 
-  }
+
+  alert(
+    "Cannot update the API key."
+  );
+
+}
+
+}
 
 );
