@@ -1,5 +1,5 @@
 console.log(
-  "%c[YT-Guard] Content Script đã nạp thành công!",
+  "%c[YT-Guard] Content Script loaded successfully!",
   "background: green; color: white; font-size: 14px;"
 );
 
@@ -13,7 +13,9 @@ let lastCheckedId = null;
 let currentCandidate = {
   videoId: null,
   title: null,
-  titleSince: 0
+  channel: null,
+  description: null,
+  metadataSince: 0
 };
 
 let checkInProgress = false;
@@ -31,7 +33,6 @@ function getCurrentVideoId() {
     return null;
   }
 
-
   return new URLSearchParams(
     window.location.search
   ).get("v");
@@ -39,7 +40,7 @@ function getCurrentVideoId() {
 
 
 // ======================================================
-// LẤY TITLE VIDEO
+// LẤY TITLE
 // ======================================================
 
 function getRealVideoTitle() {
@@ -48,15 +49,12 @@ function getRealVideoTitle() {
     document.querySelector(
       "h1.ytd-watch-metadata yt-formatted-string"
     ) ||
-
     document.querySelector(
       "h1.title yt-formatted-string"
     ) ||
-
     document.querySelector(
       "h1.ytd-watch-metadata"
     );
-
 
   if (el) {
 
@@ -67,16 +65,11 @@ function getRealVideoTitle() {
         ""
       ).trim();
 
-
     if (title.length > 0) {
       return title;
     }
   }
 
-
-  // ----------------------------------------
-  // FALLBACK
-  // ----------------------------------------
 
   const rawTitle =
     document.title
@@ -90,7 +83,6 @@ function getRealVideoTitle() {
       )
       .trim();
 
-
   if (
     !rawTitle ||
     rawTitle === "YouTube"
@@ -98,17 +90,136 @@ function getRealVideoTitle() {
     return null;
   }
 
-
   return rawTitle;
 }
 
 
 // ======================================================
-// GỌI SERVICE WORKER KIỂM TRA VIDEO
+// LẤY CHANNEL
+// ======================================================
+
+function getVideoChannel() {
+
+  const selectors = [
+
+    "ytd-channel-name a",
+
+    "#owner ytd-channel-name a",
+
+    "#owner-name a",
+
+    "ytd-video-owner-renderer a"
+
+  ];
+
+  for (
+    const selector of selectors
+  ) {
+
+    const elements =
+      document.querySelectorAll(
+        selector
+      );
+
+    for (
+      const el of elements
+    ) {
+
+      const text =
+        (
+          el.innerText ||
+          el.textContent ||
+          ""
+        ).trim();
+
+      if (text) {
+        return text;
+      }
+    }
+  }
+
+
+  return "";
+}
+
+
+// ======================================================
+// LẤY DESCRIPTION
+// ======================================================
+
+function getVideoDescription() {
+
+  const selectors = [
+
+    "#description-inline-expander yt-attributed-string",
+
+    "#description-inline-expander",
+
+    "ytd-text-inline-expander#description-inline-expander",
+
+    "#description yt-attributed-string",
+
+    "#description"
+
+  ];
+
+  for (
+    const selector of selectors
+  ) {
+
+    const el =
+      document.querySelector(
+        selector
+      );
+
+    if (!el) {
+      continue;
+    }
+
+    const text =
+      (
+        el.innerText ||
+        el.textContent ||
+        ""
+      ).trim();
+
+    if (text) {
+      return text;
+    }
+  }
+
+
+  return "";
+}
+
+
+// ======================================================
+// LẤY TOÀN BỘ METADATA
+// ======================================================
+
+function getVideoMetadata() {
+
+  return {
+
+    title:
+      getRealVideoTitle() || "",
+
+    channel:
+      getVideoChannel() || "",
+
+    description:
+      getVideoDescription() || ""
+
+  };
+}
+
+
+// ======================================================
+// GỌI SERVICE WORKER
 // ======================================================
 
 async function checkAndBlock(
-  title,
+  metadata,
   videoId
 ) {
 
@@ -116,23 +227,33 @@ async function checkAndBlock(
     return;
   }
 
-
   checkInProgress = true;
-
 
   try {
 
     console.log(
-      "[YT-Guard] Đang gửi tiêu đề sang Gemini:",
-      title
+      "[YT-Guard] Checking metadata:",
+      metadata
     );
 
 
     const result =
       await chrome.runtime.sendMessage({
-        action: "CHECK_VIDEO",
-        title,
-        videoId
+
+        action:
+          "CHECK_VIDEO",
+
+        videoId,
+
+        title:
+          metadata.title,
+
+        channel:
+          metadata.channel,
+
+        description:
+          metadata.description
+
       });
 
 
@@ -143,22 +264,17 @@ async function checkAndBlock(
     const currentVideoId =
       getCurrentVideoId();
 
-
     if (
       currentVideoId !== videoId
     ) {
 
       console.log(
-        "[YT-Guard] Video đã thay đổi trong lúc AI xử lý. Bỏ qua kết quả cũ."
+        "[YT-Guard] Video changed during check. Skipping result."
       );
 
       return;
     }
 
-
-    // ----------------------------------------
-    // KHÔNG CÓ RESPONSE
-    // ----------------------------------------
 
     if (!result) {
 
@@ -170,67 +286,62 @@ async function checkAndBlock(
     }
 
 
-    // ----------------------------------------
-    // API ERROR
-    // ----------------------------------------
-
     if (result.error) {
 
       console.error(
-        "[YT-Guard] Gemini error:",
+        "[YT-Guard] Check error:",
         result.error
       );
-
-      // Không đánh dấu đã kiểm tra,
-      // để vòng lặp có thể thử lại.
 
       return;
     }
 
 
     console.log(
-      "[YT-Guard] Kết quả Gemini:",
+      "[YT-Guard] Check result:",
       result
     );
 
 
-    // ----------------------------------------
-    // CHỈ ĐÁNH DẤU SAU KHI RESPONSE HỢP LỆ
-    // ----------------------------------------
-
-    lastCheckedId = videoId;
+    lastCheckedId =
+      videoId;
 
 
     // ----------------------------------------
     // BLOCK
     // ----------------------------------------
 
-    if (result.block === true) {
+    if (
+      result.block === true
+    ) {
 
       console.warn(
         "[YT-Guard] Vi phạm tiêu chí chặn! Đang đóng tab..."
       );
 
 
-      // Dừng video ngay trước.
       document
         .querySelectorAll("video")
-        .forEach(video => {
+        .forEach(
+          video => {
 
-          try {
-            video.pause();
-          } catch {
-            // Không làm gì.
+            try {
+              video.pause();
+            } catch {
+              // Không làm gì.
+            }
+
           }
+        );
 
-        });
 
-
-      // Yêu cầu service worker đóng tab.
       try {
 
         await chrome.runtime.sendMessage({
-          action: "CLOSE_CURRENT_TAB"
+
+          action:
+            "CLOSE_CURRENT_TAB"
+
         });
 
       } catch (closeError) {
@@ -240,8 +351,6 @@ async function checkAndBlock(
           closeError
         );
 
-
-        // Fallback.
         window.close();
       }
     }
@@ -256,13 +365,39 @@ async function checkAndBlock(
 
   } finally {
 
-    checkInProgress = false;
+    checkInProgress =
+      false;
   }
 }
 
 
 // ======================================================
-// CHỜ TITLE ỔN ĐỊNH
+// RESET CANDIDATE
+// ======================================================
+
+function resetCandidate(
+  videoId
+) {
+
+  currentCandidate = {
+
+    videoId,
+
+    title: null,
+
+    channel: null,
+
+    description: null,
+
+    metadataSince:
+      0
+
+  };
+}
+
+
+// ======================================================
+// KIỂM TRA ĐỊNH KỲ
 // ======================================================
 
 function runCheck() {
@@ -277,13 +412,12 @@ function runCheck() {
 
   if (!videoId) {
 
-    lastCheckedId = null;
+    lastCheckedId =
+      null;
 
-    currentCandidate = {
-      videoId: null,
-      title: null,
-      titleSince: 0
-    };
+    resetCandidate(
+      null
+    );
 
     return;
   }
@@ -298,14 +432,12 @@ function runCheck() {
     currentCandidate.videoId
   ) {
 
-    currentCandidate = {
-      videoId,
-      title: null,
-      titleSince: 0
-    };
+    resetCandidate(
+      videoId
+    );
 
-
-    lastCheckedId = null;
+    lastCheckedId =
+      null;
   }
 
 
@@ -314,38 +446,58 @@ function runCheck() {
   // ----------------------------------------
 
   if (
-    videoId === lastCheckedId
+    videoId ===
+    lastCheckedId
   ) {
+
     return;
   }
 
 
   // ----------------------------------------
-  // LẤY TITLE
+  // LẤY METADATA
   // ----------------------------------------
 
-  const title =
-    getRealVideoTitle();
+  const metadata =
+    getVideoMetadata();
 
-
-  if (!title) {
-    return;
-  }
-
-
-  // ----------------------------------------
-  // TITLE VỪA ĐỔI
-  // ----------------------------------------
 
   if (
-    title !==
-    currentCandidate.title
+    !metadata.title
   ) {
 
-    currentCandidate.title =
-      title;
+    return;
+  }
 
-    currentCandidate.titleSince =
+
+  // ----------------------------------------
+  // METADATA VỪA THAY ĐỔI
+  // ----------------------------------------
+
+  const metadataChanged =
+
+    metadata.title !==
+      currentCandidate.title ||
+
+    metadata.channel !==
+      currentCandidate.channel ||
+
+    metadata.description !==
+      currentCandidate.description;
+
+
+  if (metadataChanged) {
+
+    currentCandidate.title =
+      metadata.title;
+
+    currentCandidate.channel =
+      metadata.channel;
+
+    currentCandidate.description =
+      metadata.description;
+
+    currentCandidate.metadataSince =
       Date.now();
 
     return;
@@ -353,12 +505,12 @@ function runCheck() {
 
 
   // ----------------------------------------
-  // CHỜ 500ms
+  // CHỜ METADATA ỔN ĐỊNH
   // ----------------------------------------
 
   if (
     Date.now() -
-    currentCandidate.titleSince <
+      currentCandidate.metadataSince <
     500
   ) {
 
@@ -367,21 +519,17 @@ function runCheck() {
 
 
   console.log(
-    "[YT-Guard] Đã lấy được tiêu đề chuẩn:",
-    title
+    "[YT-Guard] Metadata ready:",
+    metadata
   );
 
 
   checkAndBlock(
-    title,
+    metadata,
     videoId
   );
 }
 
-
-// ======================================================
-// KIỂM TRA ĐỊNH KỲ
-// ======================================================
 
 setInterval(
   runCheck,
@@ -401,14 +549,13 @@ window.addEventListener(
       getCurrentVideoId();
 
 
-    lastCheckedId = null;
+    lastCheckedId =
+      null;
 
 
-    currentCandidate = {
-      videoId,
-      title: null,
-      titleSince: 0
-    };
+    resetCandidate(
+      videoId
+    );
 
 
     runCheck();
@@ -416,13 +563,19 @@ window.addEventListener(
 
     setTimeout(
       runCheck,
-      200
+      300
     );
 
 
     setTimeout(
       runCheck,
-      600
+      800
+    );
+
+
+    setTimeout(
+      runCheck,
+      1500
     );
 
   }
@@ -443,6 +596,12 @@ window.addEventListener(
     setTimeout(
       runCheck,
       500
+    );
+
+
+    setTimeout(
+      runCheck,
+      1200
     );
 
   }

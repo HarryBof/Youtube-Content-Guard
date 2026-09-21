@@ -9,7 +9,7 @@
     }
 
     body {
-      width: 300px;
+      width: 330px;
       margin: 0;
       padding: 12px;
       background: #141414;
@@ -38,11 +38,6 @@
       border-color: #2ba640;
     }
 
-    input:disabled {
-      opacity: 0.65;
-      cursor: not-allowed;
-    }
-
     /* =========================
        SETUP
        ========================= */
@@ -51,6 +46,12 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
+    }
+
+    .setup-note {
+      font-size: 11px;
+      color: #888;
+      line-height: 1.4;
     }
 
     .btn-save-setup {
@@ -197,19 +198,114 @@
     }
 
     /* =========================
-       API KEY
+       AI SETTINGS
        ========================= */
 
-    .api-box {
-      margin-top: 8px;
+    .ai-section {
+      margin-top: 10px;
       border-top: 1px dashed #333;
-      padding-top: 8px;
+      padding-top: 10px;
+    }
 
+    .ai-title {
+      font-size: 12px;
+      font-weight: bold;
+      color: #888;
+      margin-bottom: 8px;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .toggle-label {
+      font-size: 12px;
+      color: #ccc;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 38px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: #444;
+      border-radius: 20px;
+      transition: 0.2s;
+    }
+
+    .slider:before {
+      content: "";
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      left: 2px;
+      top: 2px;
+      background: white;
+      border-radius: 50%;
+      transition: 0.2s;
+    }
+
+    .switch input:checked + .slider {
+      background: #2ba640;
+    }
+
+    .switch input:checked + .slider:before {
+      transform: translateX(18px);
+    }
+
+    /* =========================
+       CURRENT API
+       ========================= */
+
+    .current-api-row {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 6px;
+    }
+
+    #current-api-key {
+      flex: 1;
+      min-width: 0;
+      color: #aaa;
+    }
+
+    .btn-show-api {
+      background: #333;
+      border: none;
+      color: #ddd;
+      padding: 0 9px;
+      border-radius: 6px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .btn-show-api:hover {
+      background: #444;
+    }
+
+    .api-update-row {
       display: flex;
       gap: 6px;
     }
 
-    .api-box input {
+    .api-update-row input {
       min-width: 0;
     }
 
@@ -217,10 +313,8 @@
       background: #333;
       border: none;
       color: #ddd;
-
       padding: 0 10px;
       border-radius: 6px;
-
       font-size: 12px;
       cursor: pointer;
       white-space: nowrap;
@@ -229,13 +323,20 @@
     .btn-update-key:hover {
       background: #444;
     }
+
+    .api-note {
+      font-size: 10px;
+      color: #666;
+      line-height: 1.35;
+      margin-top: 6px;
+    }
   </style>
 </head>
 
 <body>
 
   <!-- =========================
-       1. SETUP LẦN ĐẦU
+       SETUP LẦN ĐẦU
        ========================= -->
 
   <div id="setup-view">
@@ -243,7 +344,7 @@
     <input
       type="password"
       id="init-api-key"
-      placeholder="Nhập Gemini API Key..."
+      placeholder="Gemini API Key (optional)"
       autocomplete="off"
     />
 
@@ -253,6 +354,11 @@
       placeholder="Tạo mật khẩu mở khóa..."
       autocomplete="new-password"
     />
+
+    <div class="setup-note">
+      API Key không bắt buộc. Không có API, YT-Guard vẫn có thể
+      chặn video bằng cách kiểm tra title, channel và description.
+    </div>
 
     <button
       class="btn-save-setup"
@@ -265,7 +371,7 @@
 
 
   <!-- =========================
-       2. MAIN VIEW
+       MAIN VIEW
        ========================= -->
 
   <div id="main-view">
@@ -292,7 +398,7 @@
 
 
     <!-- =========================
-         3. ADMIN PANEL
+         ADMIN PANEL
          ========================= -->
 
     <div
@@ -320,24 +426,82 @@
 
 
       <!-- =========================
-           ĐỔI API KEY
+           AI SETTINGS
            ========================= -->
 
-      <div class="api-box">
+      <div class="ai-section">
 
-        <input
-          type="password"
-          id="change-api-key"
-          placeholder="Change API Key..."
-          autocomplete="off"
-        />
+        <div class="ai-title">
+          AI Settings
+        </div>
 
-        <button
-          class="btn-update-key"
-          id="btn-update-key"
-        >
-          Update
-        </button>
+
+        <div class="toggle-row">
+
+          <span class="toggle-label">
+            Use AI when no local match
+          </span>
+
+          <label class="switch">
+
+            <input
+              type="checkbox"
+              id="use-api-toggle"
+            >
+
+            <span class="slider"></span>
+
+          </label>
+
+        </div>
+
+
+        <!-- CURRENT API -->
+
+        <div class="current-api-row">
+
+          <input
+            type="text"
+            id="current-api-key"
+            readonly
+            value="Not configured"
+          >
+
+          <button
+            class="btn-show-api"
+            id="btn-show-api"
+          >
+            Show
+          </button>
+
+        </div>
+
+
+        <!-- UPDATE API -->
+
+        <div class="api-update-row">
+
+          <input
+            type="password"
+            id="change-api-key"
+            placeholder="New Gemini API Key..."
+            autocomplete="off"
+          >
+
+          <button
+            class="btn-update-key"
+            id="btn-update-key"
+          >
+            Update
+          </button>
+
+        </div>
+
+
+        <div class="api-note">
+          AI is only called when title, channel and description
+          do not directly match any block rule.
+        </div>
 
       </div>
 
