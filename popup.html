@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="vi">
+
+<html lang="en">
 <head>
   <meta charset="UTF-8">
 
@@ -39,7 +40,7 @@
     }
 
     /* =========================
-       SETUP
+       INITIAL SETUP
        ========================= */
 
     #setup-view {
@@ -69,7 +70,7 @@
     }
 
     /* =========================
-       MAIN
+       MAIN VIEW
        ========================= */
 
     #main-view {
@@ -271,7 +272,7 @@
     }
 
     /* =========================
-       CURRENT API
+       CURRENT API KEY
        ========================= */
 
     .current-api-row {
@@ -331,44 +332,47 @@
       margin-top: 6px;
     }
   </style>
+
 </head>
 
 <body>
 
   <!-- =========================
-       SETUP LẦN ĐẦU
+       INITIAL SETUP
        ========================= -->
 
   <div id="setup-view">
 
-    <input
-      type="password"
-      id="init-api-key"
-      placeholder="Gemini API Key (optional)"
-      autocomplete="off"
-    />
+```
+<input
+  type="password"
+  id="init-api-key"
+  placeholder="Gemini API Key (optional)"
+  autocomplete="off"
+/>
 
-    <input
-      type="password"
-      id="init-password"
-      placeholder="Tạo mật khẩu mở khóa..."
-      autocomplete="new-password"
-    />
+<input
+  type="password"
+  id="init-password"
+  placeholder="Password"
+  autocomplete="new-password"
+/>
 
-    <div class="setup-note">
-      API Key không bắt buộc. Không có API, YT-Guard vẫn có thể
-      chặn video bằng cách kiểm tra title, channel và description.
-    </div>
+<div class="setup-note">
+  API key is optional. If provided, it will be used for
+  AI content moderation when no local match is found. You
+  can also set it later in the admin panel.
+</div>
 
-    <button
-      class="btn-save-setup"
-      id="btn-save-setup"
-    >
-      Lưu thiết lập
-    </button>
+<button
+  class="btn-save-setup"
+  id="btn-save-setup"
+>
+  Save
+</button>
+```
 
   </div>
-
 
   <!-- =========================
        MAIN VIEW
@@ -376,139 +380,140 @@
 
   <div id="main-view">
 
-    <div class="input-row">
+```
+<div class="input-row">
+
+  <input
+    type="text"
+    id="rule-input"
+    placeholder="Input text or link..."
+    autofocus
+    autocomplete="off"
+  />
+
+  <button
+    class="btn-add"
+    id="btn-add"
+    title="Add"
+  >
+    +
+  </button>
+
+</div>
+
+
+<!-- =========================
+     ADMIN PANEL
+     ========================= -->
+
+<div
+  id="admin-panel"
+  style="display: none;"
+>
+
+  <div class="panel-top">
+
+    <span>
+      Block list
+    </span>
+
+    <button
+      class="btn-clear-all"
+      id="btn-clear-all"
+    >
+      Delete all
+    </button>
+
+  </div>
+
+
+  <ul id="rules-list"></ul>
+
+
+  <!-- =========================
+       AI SETTINGS
+       ========================= -->
+
+  <div class="ai-section">
+
+    <div class="ai-title">
+      AI Settings
+    </div>
+
+
+    <div class="toggle-row">
+
+      <span class="toggle-label">
+        Use AI when no local match
+      </span>
+
+      <label class="switch">
+
+        <input
+          type="checkbox"
+          id="use-api-toggle"
+        >
+
+        <span class="slider"></span>
+
+      </label>
+
+    </div>
+
+
+    <!-- CURRENT API KEY -->
+
+    <div class="current-api-row">
 
       <input
         type="text"
-        id="rule-input"
-        placeholder="Input text or link..."
-        autofocus
-        autocomplete="off"
-      />
+        id="current-api-key"
+        readonly
+        value="Not configured"
+      >
 
       <button
-        class="btn-add"
-        id="btn-add"
-        title="Thêm"
+        class="btn-show-api"
+        id="btn-show-api"
       >
-        +
+        Show
       </button>
 
     </div>
 
 
-    <!-- =========================
-         ADMIN PANEL
-         ========================= -->
+    <!-- UPDATE API KEY -->
 
-    <div
-      id="admin-panel"
-      style="display: none;"
-    >
+    <div class="api-update-row">
 
-      <div class="panel-top">
+      <input
+        type="password"
+        id="change-api-key"
+        placeholder="New Gemini API Key..."
+        autocomplete="off"
+      >
 
-        <span>
-          Block list
-        </span>
+      <button
+        class="btn-update-key"
+        id="btn-update-key"
+      >
+        Update
+      </button>
 
-        <button
-          class="btn-clear-all"
-          id="btn-clear-all"
-        >
-          Delete all
-        </button>
-
-      </div>
+    </div>
 
 
-      <ul id="rules-list"></ul>
-
-
-      <!-- =========================
-           AI SETTINGS
-           ========================= -->
-
-      <div class="ai-section">
-
-        <div class="ai-title">
-          AI Settings
-        </div>
-
-
-        <div class="toggle-row">
-
-          <span class="toggle-label">
-            Use AI when no local match
-          </span>
-
-          <label class="switch">
-
-            <input
-              type="checkbox"
-              id="use-api-toggle"
-            >
-
-            <span class="slider"></span>
-
-          </label>
-
-        </div>
-
-
-        <!-- CURRENT API -->
-
-        <div class="current-api-row">
-
-          <input
-            type="text"
-            id="current-api-key"
-            readonly
-            value="Not configured"
-          >
-
-          <button
-            class="btn-show-api"
-            id="btn-show-api"
-          >
-            Show
-          </button>
-
-        </div>
-
-
-        <!-- UPDATE API -->
-
-        <div class="api-update-row">
-
-          <input
-            type="password"
-            id="change-api-key"
-            placeholder="New Gemini API Key..."
-            autocomplete="off"
-          >
-
-          <button
-            class="btn-update-key"
-            id="btn-update-key"
-          >
-            Update
-          </button>
-
-        </div>
-
-
-        <div class="api-note">
-          AI is only called when title, channel and description
-          do not directly match any block rule.
-        </div>
-
-      </div>
-
+    <div class="api-note">
+      AI is only called when title, channel and description
+      do not directly match any block rule.
     </div>
 
   </div>
 
+</div>
+```
+
+  </div>
 
   <script src="popup.js"></script>
 
