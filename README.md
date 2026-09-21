@@ -1,156 +1,150 @@
 # YouTube Content Guard
 
-A Chrome extension that helps block unwanted YouTube content using custom blocking rules and optional Google Gemini AI analysis.
+A Chrome extension that automatically detects and blocks unwanted YouTube content using custom rules and Google Gemini.
 
-YouTube Content Guard can detect the current YouTube video, compare it against your blocking rules, and automatically redirect blocked videos back to YouTube.
+You can create your own blocking rules, check videos automatically while browsing YouTube, and use Gemini to identify specific content when a local rule does not match.
 
 ## Features
 
 * Automatically checks YouTube videos while browsing.
-* Custom user-defined blocking rules.
-* Local rule matching before using AI.
-* Optional Google Gemini AI semantic checking.
-* Uses video title and channel information for content identification.
-* YouTube URL analysis for creating useful blocking rules.
-* Local keyword extraction without AI.
-* Optional Gemini keyword enhancement.
-* Optimized token usage
-* Redirects blocked videos back to `https://www.youtube.com/`.
+* Supports custom blocking rules.
+* Supports two types of rules:
+
+  * **Metadata rules** — exact title or channel matching.
+  * **Keyword rules** — matches a keyword anywhere in the title or channel name.
+* Local rule checking happens before Gemini is used.
+* Uses Google Gemini for additional content understanding when enabled.
+* Automatically analyzes YouTube video titles and channel names.
+* Paste a YouTube URL into the extension to extract specific keywords/entities.
+* Automatically adds extracted video information as blocking rules.
 * Password-protected admin panel.
-* Add and delete individual blocking rules.
+* Delete individual blocking rules.
 * Delete all blocking rules.
 * Change the Gemini API key from the admin panel.
-* Chrome Manifest V3.
+* Enable or disable Gemini AI.
+* Uses Chrome Manifest V3.
 
 ---
 
 # How It Works
 
-The extension uses two levels of content checking.
+When a YouTube video is opened, YouTube Content Guard obtains the video's metadata and checks it against the user's blocking rules.
 
 ```text
 YouTube video
       ↓
-Detect video ID
+Video title + channel
       ↓
-Get title + channel
+Local rule check
       ↓
-Check local blocking rules
-      ↓
-Local match?
+Match found?
    ↙       ↘
- YES        NO
- ↓           ↓
-BLOCK      Gemini enabled?
-              ↓
-           Gemini check
-              ↓
-         block = true/false
+ YES       NO
+  ↓         ↓
+Block     Gemini
+            ↓
+       Block / Allow
 ```
 
-If a video is blocked, the extension redirects the current tab to:
+If a video is blocked, the extension redirects the current tab back to:
 
 ```text
 https://www.youtube.com/
 ```
 
-This prevents the user from continuing to the blocked video while keeping the browser tab open.
+The extension does not close the browser tab.
 
 ---
 
 # Blocking Rules
 
-Blocking rules are user-defined phrases or topics.
+There are two types of blocking rules.
+
+## Metadata Rules
+
+A metadata rule must match the entire title or the entire channel name.
 
 For example:
 
 ```text
-Minecraft
-Fortnite
-One Piece
-AI generated stories
-specific creator name
+Julien Song
 ```
 
-Rules are checked against the video metadata.
-
-## Local Matching
-
-Local matching is performed before Gemini is called.
-
-The extension normalizes text by:
-
-* Converting text to lowercase.
-* Removing accents.
-* Normalizing punctuation and whitespace.
-
-For a rule to match a title, the **entire normalized title must equal the normalized rule**.
-
-For example:
+Matches:
 
 ```text
-Rule:
-Minecraft
-
-Title:
-Minecraft
+Title: Julien Song
 ```
 
-Result:
+But does not match:
 
 ```text
-MATCH
+Title: Julien Song Official
 ```
 
-But:
+Similarly:
 
 ```text
-Rule:
-Minecraft
-
-Title:
-I Played Minecraft For 100 Hours
+Song
 ```
 
-Result:
+does not match:
 
 ```text
-NO MATCH
+Julien Song
 ```
 
-A partial word or phrase inside a longer title does not trigger the local title match.
-
-This prevents ordinary words from accidentally blocking videos simply because they appear somewhere inside a title.
+Metadata matching ignores capitalization, punctuation, and accents.
 
 ---
 
-# Channel Matching
+## Keyword Rules
 
-Channel names are also checked separately.
+Keyword rules can match anywhere inside the video title or channel name.
 
 For example:
 
 ```text
-Rule:
-ExampleChannel
-
-Channel:
-ExampleChannel
+chess
 ```
 
-Result:
+can match:
 
 ```text
-MATCH
+I Played Chess Today
 ```
 
-Channel matching is useful when you want to block content from a specific creator.
+and:
+
+```text
+GothamChess
+```
+
+Keyword matching is case-insensitive and accent-insensitive.
 
 ---
 
-# YouTube URL Analysis
+# Adding Rules
 
-The extension can also accept a YouTube URL through the popup.
+The main input field can be used in several ways.
+
+## 1. Add a normal rule
+
+Enter a rule into the input field and press `+`.
+
+Example:
+
+```text
+chess
+```
+
+The rule will be added to the blocking list.
+
+---
+
+## 2. Analyze a YouTube URL
+
+Paste a YouTube video URL into the input field.
 
 Example:
 
@@ -158,199 +152,160 @@ Example:
 https://www.youtube.com/watch?v=XXXXXXXXXXX
 ```
 
-or:
+Press `+`.
 
-```text
-https://youtu.be/XXXXXXXXXXX
-```
-
-The extension extracts the video ID and retrieves lightweight YouTube metadata.
+The extension retrieves lightweight metadata from YouTube:
 
 ```text
 YouTube URL
-     ↓
-Video ID
      ↓
 YouTube metadata
      ↓
 Title + Channel
      ↓
-Keyword extraction
+Gemini
+     ↓
+Specific keywords/entities
+     ↓
+Blocking rules
 ```
 
-The extension does **not** download or analyze the entire video.
+Gemini can identify specific entities such as:
 
----
+* People
+* Games
+* Movies
+* Anime
+* Characters
+* Franchises
+* Products
+* Technologies
+* Organizations
+* Series
+* Events
+* Other distinctive subjects
 
-# Local Keyword Extraction
+The extracted information can then be added to the blocking list.
 
-When analyzing a YouTube URL, the extension first extracts keywords locally.
-
-This does not require Gemini.
-
-The current system focuses on:
-
-```text
-Video title
-Channel name
-```
-
-The title itself is not simply split into random words.
-
-The purpose of the extraction system is to identify useful entities that could become blocking rules, while avoiding generic words.
-
-For example, generic terms such as:
-
-```text
-video
-game
-gaming
-gameplay
-review
-reaction
-strategy
-tournament
-match
-guide
-tutorial
-analysis
-news
-challenge
-```
-
-are not treated as useful identifying keywords.
-
----
-
-# Gemini Keyword Enhancement
-
-If Gemini is enabled and an API key is configured, the extension can send the title and channel information to Gemini.
-
-Gemini is asked to identify a small number of additional, highly specific entities.
-
-For example, useful results may include:
-
-```text
-Magnus Carlsen
-Hikaru Nakamura
-Elden Ring
-Malenia
-One Piece
-```
-
-Generic categories such as:
-
-```text
-gaming
-action
-strategy
-entertainment
-```
-
-are intentionally discouraged.
-
-Gemini is also instructed not to invent information when the metadata does not provide enough evidence.
-
-If Gemini is unavailable, local processing can still continue.
+The extension does **not** send the entire YouTube video to Gemini.
 
 ---
 
 # Automatic Video Checking
 
-When opening or navigating to a YouTube video, the extension detects the current video ID and collects its metadata.
+When a video is opened on YouTube, the extension performs a local check first.
 
-The checking process is:
+### Step 1 — Local rules
+
+The title and channel are compared against the saved rules.
+
+Keyword rules are checked literally.
+
+Metadata rules require an exact full-text match.
+
+### Step 2 — Gemini
+
+If no local rule matches and Gemini is enabled, the title and channel are sent to Gemini.
+
+Gemini determines whether the video is clearly related to any blocking rule.
 
 ```text
-YouTube video
-      ↓
-Video ID
-      ↓
-Title + Channel
-      ↓
-Local rule matching
-      ↓
-No local match
-      ↓
-Gemini semantic check
-      ↓
-block = true / false
+Title + Channel + Blocking Rules
+              ↓
+            Gemini
+              ↓
+       block = true/false
 ```
 
-If Gemini is disabled, the extension stops after the local check.
-
-If Gemini is enabled, Gemini receives the relevant metadata and blocking rules and determines whether the video is clearly related to one of the configured rules.
-
-The AI check is designed to be conservative rather than blocking a video simply because it contains an unrelated common word.
+If Gemini determines that the video should be blocked, the extension redirects the current tab back to YouTube.
 
 ---
 
-# AI Usage
+# Gemini AI
 
-Google Gemini is used for two main tasks.
+Gemini is used for two main tasks.
 
-## 1. Automatic Video Checking
+## Automatic Video Checking
 
 ```text
 Video title
-      +
-Channel
-      +
+     +
+Channel name
+     +
 Blocking rules
-      ↓
-Gemini
-      ↓
-block = true / false
+     ↓
+   Gemini
+     ↓
+Block / Allow
 ```
 
-The purpose is to identify semantic relationships that cannot be reliably detected using exact local matching alone.
+Local matching is performed first, so Gemini is not required for every rule check.
 
-## 2. YouTube URL Keyword Enhancement
+## YouTube URL Analysis
+
+When a YouTube URL is manually entered:
 
 ```text
 YouTube URL
      ↓
-Title + Channel
+YouTube metadata
      ↓
-Local keyword extraction
+Title + Channel
      ↓
 Gemini
      ↓
-Additional specific keywords
+Specific keywords/entities
 ```
 
-Gemini is only given the metadata required for these tasks.
-
-The extension does not send the entire YouTube video to Gemini.
+The purpose is to identify the subject of the content rather than generate a full summary of the video.
 
 ---
 
-# Blocked Video Behavior
+# First-Time Setup
 
-When a video is determined to be blocked, the extension redirects the current browser tab to:
+After installing the extension, open it from the Chrome extensions menu.
 
-```text
-https://www.youtube.com/
-```
+The first-time setup requires:
 
-The tab is **not closed**.
+* Gemini API key
+* Password
 
-This allows the browser session to remain open while preventing continued access to the blocked video.
+The Gemini API key is optional for basic local rule matching, but Gemini must be configured and enabled for AI-based checking and URL analysis.
+
+The password is used to access the hidden admin panel.
+
+---
+
+# Admin Panel
+
+Enter the password into the main input field and press `+`.
+
+The admin panel allows you to:
+
+* View saved blocking rules
+* Delete individual rules
+* Delete all rules
+* View/change the Gemini API key
+* Enable or disable Gemini AI
+
+The rule type is handled internally and does not need to be displayed in the interface.
 
 ---
 
 # Installation
 
-You can use a release package or load the extension manually.
+## 1. Download the Repository
 
-## 1. Download the Project
+Clone or download this repository:
 
-Download or clone this repository.
+```text
+https://github.com/HarryBof/Youtube-Content-Guard
+```
 
 The extension folder should contain:
 
 ```text
-yt-guard/
+Youtube-Content-Guard/
 ├── manifest.json
 ├── popup.html
 ├── popup.js
@@ -373,13 +328,7 @@ chrome://extensions
 
 ## 3. Enable Developer Mode
 
-Enable:
-
-```text
-Developer mode
-```
-
-Usually this option is located in the top-right corner.
+Enable **Developer mode**.
 
 ## 4. Load the Extension
 
@@ -395,92 +344,7 @@ Select the folder containing:
 manifest.json
 ```
 
-Do not select an individual file.
-
-After loading, the extension should appear in Chrome.
-
----
-
-# First-Time Setup
-
-Click the YouTube Content Guard extension icon.
-
-The initial setup requires:
-
-```text
-Gemini API Key
-Password
-```
-
-## Gemini API Key
-
-Enter your Google Gemini API key.
-
-The extension stores the key using Chrome's local extension storage.
-
-Gemini is optional for local rule matching, but required for AI-based semantic checking and Gemini keyword enhancement.
-
-## Password
-
-Create a password for the admin panel.
-
-The password is used to access administrative functions such as:
-
-* Viewing rules.
-* Deleting rules.
-* Deleting all rules.
-* Changing the Gemini API key.
-
----
-
-# Adding Blocking Rules
-
-The main interface provides an input field and an add button.
-
-```text
-[ Input text or link... ] [+]
-```
-
-## Add a Rule Manually
-
-Enter a rule such as:
-
-```text
-Minecraft
-```
-
-Then press `+`.
-
-The rule will be added to the blocking list.
-
-## Add a YouTube URL
-
-Paste a YouTube URL into the same input field.
-
-For example:
-
-```text
-https://youtu.be/XXXXXXXXXXX
-```
-
-The extension will analyze the video's title and channel and generate identifying keywords.
-
-These keywords can then be used as blocking rules.
-
----
-
-# Admin Panel
-
-Enter the password created during setup to open the admin panel.
-
-The admin panel allows you to:
-
-* View blocking rules.
-* Delete individual rules.
-* Delete all rules.
-* Change the Gemini API key.
-
-Exit the extension or leave the admin interface to hide the panel.
+The extension should now appear in Chrome.
 
 ---
 
@@ -488,13 +352,13 @@ Exit the extension or leave the admin interface to hide the panel.
 
 The Gemini API key is stored using Chrome's local extension storage.
 
-The extension communicates with Google's Gemini API only when an AI-powered operation is required.
+The extension communicates with Google's Gemini API when an AI request is required.
 
-The extension does not send the entire YouTube video to Gemini.
+For automatic video checking, the extension sends the information required for the blocking decision rather than the entire YouTube video.
 
-Only metadata and information required for the requested operation are used.
+For YouTube URL analysis, the extension retrieves lightweight metadata such as the video title and channel name before sending information to Gemini.
 
-**Do not publish your personal Gemini API key in this repository or hard-code it into the source code.**
+Do not publish your personal Gemini API key in this repository or hard-code it into the source code.
 
 ---
 
@@ -509,16 +373,16 @@ Chrome extension configuration
 content.js
     ↓
 Runs on YouTube pages
-Detects the current video
-Collects video metadata
-Sends checking requests to the service worker
+Detects video changes
+Gets video metadata
+Sends video checks to the service worker
 
 
 service-worker.js
     ↓
 Handles Gemini API requests
-Performs local rule matching
-Performs AI video checks
+Handles local rule matching
+Checks video metadata
 Retrieves YouTube metadata
 Analyzes YouTube URLs
 Handles blocked-video redirects
@@ -534,6 +398,7 @@ popup.js
 Handles setup
 Handles blocking rules
 Handles YouTube URL analysis
+Handles API settings
 Handles admin panel
 
 
@@ -550,11 +415,11 @@ This project is still under development.
 
 Current limitations include:
 
-* YouTube's interface can change, which may require updates to video detection.
-* Gemini API availability and usage limits can affect AI checks.
-* Automatic checking relies primarily on YouTube metadata.
-* Local title matching requires the normalized title to match the rule exactly.
-* Gemini semantic checking is optional and depends on a valid API key.
+* YouTube's interface can change and may require updates to metadata detection.
+* Gemini API availability and usage limits can affect AI-based checks.
+* Automatic checking relies on YouTube metadata rather than analyzing the actual video.
+* AI-based decisions depend on the information available in the video title and channel metadata.
+* The extension currently redirects blocked videos back to YouTube rather than displaying a dedicated block page.
 * The project does not currently include a large automated test suite.
 
 ---
@@ -563,28 +428,34 @@ Current limitations include:
 
 Possible future improvements include:
 
-* Cache previously analyzed YouTube videos.
+* Cache previously checked videos.
 * Reduce unnecessary Gemini API requests.
 * Improve YouTube navigation detection.
-* Improve metadata collection.
-* Add automated tests.
+* Improve local keyword matching.
 * Improve rule management.
-* Add more control over local matching behavior.
-* Improve the blocking interface.
-* Add a dedicated blocked-video page.
-* Improve privacy and API-key handling for wider distribution.
+* Add a dedicated block page.
+* Add more control over rule types.
+* Improve API-key security for wider distribution.
+* Add automated tests.
+* Improve the user interface.
+* Add more advanced content classification options.
 
 ---
 
-# About
+# Technologies
 
-YouTube Content Guard is a personal Chrome extension project exploring AI-powered content filtering and browser extension development.
-
-Built with:
+YouTube Content Guard is built with:
 
 * JavaScript
 * Chrome Extension Manifest V3
 * Google Gemini API
 * YouTube metadata
+* Chrome Extension APIs
 
-The project is intended for experimentation and personal use.
+---
+
+# About
+
+YouTube Content Guard is a personal Chrome extension project focused on AI-assisted YouTube content filtering and browser extension development.
+
+The project combines local rule matching with optional Gemini-based content understanding to give users more control over the content they encounter on YouTube.
