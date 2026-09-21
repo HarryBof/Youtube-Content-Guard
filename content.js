@@ -20,17 +20,21 @@ let currentCandidate = {
 
 let checkInProgress = false;
 
+let activeCheckVideoId = null;
+
 
 // ======================================================
 // DEBUG HELPER
 // ======================================================
 
 function debug(...args) {
+
   console.log(
     "%c[YT-Guard]",
     "background: #2ba640; color: white; font-weight: bold;",
     ...args
   );
+
 }
 
 
@@ -43,43 +47,33 @@ function getCurrentVideoId() {
   const path =
     window.location.pathname;
 
-  const search =
-    window.location.search;
-
-  debug(
-    "Getting video ID...",
-    {
-      path,
-      search
-    }
-  );
-
-
   if (
     path !== "/watch"
   ) {
 
-    debug(
-      "Not a /watch page. No video ID."
-    );
-
     return null;
+
   }
 
 
   const videoId =
     new URLSearchParams(
-      search
+      window.location.search
     ).get("v");
 
 
-  debug(
-    "Current video ID:",
-    videoId
-  );
+  if (
+    !videoId ||
+    !/^[A-Za-z0-9_-]{6,20}$/.test(videoId)
+  ) {
+
+    return null;
+
+  }
 
 
   return videoId;
+
 }
 
 
@@ -89,18 +83,15 @@ function getCurrentVideoId() {
 
 function getRealVideoTitle() {
 
-  debug(
-    "Trying to find video title..."
-  );
-
-
   const selectors = [
 
     "h1.ytd-watch-metadata yt-formatted-string",
 
     "h1.title yt-formatted-string",
 
-    "h1.ytd-watch-metadata"
+    "h1.ytd-watch-metadata",
+
+    "yt-formatted-string.ytd-watch-metadata"
 
   ];
 
@@ -117,11 +108,8 @@ function getRealVideoTitle() {
 
     if (!el) {
 
-      debug(
-        `Title selector not found: ${selector}`
-      );
-
       continue;
+
     }
 
 
@@ -133,19 +121,16 @@ function getRealVideoTitle() {
       ).trim();
 
 
-    if (title.length > 0) {
-
-      debug(
-        "Title found:",
-        title
-      );
+    if (title) {
 
       return title;
+
     }
+
   }
 
 
-  // Fallback: document.title
+  // Fallback to document.title.
 
   const rawTitle =
     document.title
@@ -165,21 +150,13 @@ function getRealVideoTitle() {
     rawTitle === "YouTube"
   ) {
 
-    debug(
-      "Could not find a valid title."
-    );
-
     return null;
+
   }
 
 
-  debug(
-    "Title found using document.title:",
-    rawTitle
-  );
-
-
   return rawTitle;
+
 }
 
 
@@ -191,9 +168,9 @@ function getVideoChannel() {
 
   const selectors = [
 
-    "ytd-channel-name a",
-
     "#owner ytd-channel-name a",
+
+    "ytd-channel-name a",
 
     "#owner-name a",
 
@@ -226,23 +203,17 @@ function getVideoChannel() {
 
       if (text) {
 
-        debug(
-          "Channel found:",
-          text
-        );
-
         return text;
+
       }
+
     }
+
   }
 
 
-  debug(
-    "Channel not found. Using empty string."
-  );
-
-
   return "";
+
 }
 
 
@@ -278,7 +249,9 @@ function getVideoDescription() {
 
 
     if (!el) {
+
       continue;
+
     }
 
 
@@ -292,22 +265,15 @@ function getVideoDescription() {
 
     if (text) {
 
-      debug(
-        "Description found. Length:",
-        text.length
-      );
-
       return text;
+
     }
+
   }
 
 
-  debug(
-    "Description not found. Using empty string."
-  );
-
-
   return "";
+
 }
 
 
@@ -317,7 +283,7 @@ function getVideoDescription() {
 
 function getVideoMetadata() {
 
-  const metadata = {
+  return {
 
     title:
       getRealVideoTitle() || "",
@@ -330,14 +296,208 @@ function getVideoMetadata() {
 
   };
 
+}
 
-  debug(
-    "Collected metadata:",
-    metadata
+
+// ======================================================
+// NORMALIZE TEXT
+// ======================================================
+
+function normalizeText(text) {
+
+  return String(
+    text || ""
+  )
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(
+      /[\u0300-\u036f]/g,
+      ""
+    )
+    .replace(
+      /[^\p{L}\p{N}]+/gu,
+      " "
+    )
+    .replace(
+      /\s+/g,
+      " "
+    )
+    .trim();
+
+}
+
+
+// ======================================================
+// EXACT FULL-FIELD MATCH
+// ======================================================
+//
+// The rule must match the ENTIRE field.
+//
+// Examples:
+//
+// Rule: "Julien"
+// Text: "Julien Song"
+// -> false
+//
+// Rule: "Julien Song"
+// Text: "Julien Song"
+// -> true
+//
+// Rule: "witty_alien"
+// Channel: "witty_alien"
+// -> true
+//
+// Rule: "witty"
+// Channel: "witty_alien"
+// -> false
+//
+
+function ruleMatchesEntireField(
+  rule,
+  text
+) {
+
+  const normalizedRule =
+    normalizeText(rule);
+
+
+  const normalizedText =
+    normalizeText(text);
+
+
+  if (
+    !normalizedRule ||
+    !normalizedText
+  ) {
+
+    return false;
+
+  }
+
+
+  return normalizedRule ===
+    normalizedText;
+
+}
+
+
+// ======================================================
+// LOCAL RULE MATCHING
+// ======================================================
+//
+// Only the following fields are checked locally:
+//
+// 1. Full title
+// 2. Full channel name
+//
+// Description is intentionally NOT used.
+//
+// A partial match is never accepted.
+//
+
+function findLocalRuleMatch(
+  title,
+  channel,
+  blockRules
+) {
+
+  // ----------------------------------------
+  // Check full video title.
+  // ----------------------------------------
+
+  for (
+    const rule of blockRules
+  ) {
+
+    if (
+      ruleMatchesEntireField(
+        rule,
+        title
+      )
+    ) {
+
+      return {
+
+        matched:
+          true,
+
+        rule,
+
+        field:
+          "title"
+
+      };
+
+    }
+
+  }
+
+
+  // ----------------------------------------
+  // Check full channel name.
+  // ----------------------------------------
+
+  for (
+    const rule of blockRules
+  ) {
+
+    if (
+      ruleMatchesEntireField(
+        rule,
+        channel
+      )
+    ) {
+
+      return {
+
+        matched:
+          true,
+
+        rule,
+
+        field:
+          "channel"
+
+      };
+
+    }
+
+  }
+
+
+  return {
+
+    matched:
+      false,
+
+    rule:
+      null,
+
+    field:
+      null
+
+  };
+
+}
+
+
+// ======================================================
+// CHECK EXTENSION RUNTIME
+// ======================================================
+
+function extensionRuntimeAvailable() {
+
+  return (
+
+    typeof chrome !== "undefined" &&
+
+    chrome.runtime &&
+
+    typeof chrome.runtime.sendMessage ===
+      "function"
+
   );
 
-
-  return metadata;
 }
 
 
@@ -350,17 +510,49 @@ async function checkAndBlock(
   videoId
 ) {
 
-  if (checkInProgress) {
+  // ----------------------------------------
+  // Prevent duplicate checks for the same ID.
+  // ----------------------------------------
+
+  if (
+    checkInProgress
+  ) {
 
     debug(
-      "Check already in progress. Skipping."
+      "A check is already running. Skipping new check."
     );
 
     return;
+
   }
 
 
-  checkInProgress = true;
+  // ----------------------------------------
+  // Make sure this is still the current video.
+  // ----------------------------------------
+
+  const currentVideoId =
+    getCurrentVideoId();
+
+
+  if (
+    currentVideoId !== videoId
+  ) {
+
+    debug(
+      "Video changed before check started. Ignoring."
+    );
+
+    return;
+
+  }
+
+
+  checkInProgress =
+    true;
+
+  activeCheckVideoId =
+    videoId;
 
 
   try {
@@ -388,24 +580,17 @@ async function checkAndBlock(
       metadata.channel
     );
 
-    debug(
-      "Description length:",
-      metadata.description.length
-    );
-
 
     // ----------------------------------------
     // CHECK EXTENSION RUNTIME
     // ----------------------------------------
 
     if (
-      typeof chrome === "undefined" ||
-      !chrome.runtime ||
-      typeof chrome.runtime.sendMessage !== "function"
+      !extensionRuntimeAvailable()
     ) {
 
       throw new Error(
-        "Chrome extension runtime is unavailable in this content script."
+        "Chrome extension runtime is unavailable."
       );
 
     }
@@ -447,28 +632,23 @@ async function checkAndBlock(
 
 
     // ----------------------------------------
-    // VIDEO CHANGED
+    // CHECK WHETHER VIDEO CHANGED
     // ----------------------------------------
 
-    const currentVideoId =
+    const videoAfterCheck =
       getCurrentVideoId();
 
 
-    debug(
-      "Video ID after check:",
-      currentVideoId
-    );
-
-
     if (
-      currentVideoId !== videoId
+      videoAfterCheck !== videoId
     ) {
 
       debug(
-        "Video changed during check. Ignoring result."
+        "Video changed while checking. Ignoring result."
       );
 
       return;
+
     }
 
 
@@ -489,13 +669,23 @@ async function checkAndBlock(
     // SERVICE WORKER ERROR
     // ----------------------------------------
 
-    if (result.error) {
+    if (
+      result.error
+    ) {
 
       throw new Error(
         result.error
       );
 
     }
+
+
+    // ----------------------------------------
+    // SAVE CHECKED VIDEO
+    // ----------------------------------------
+
+    lastCheckedId =
+      videoId;
 
 
     // ----------------------------------------
@@ -506,10 +696,6 @@ async function checkAndBlock(
       "FINAL CHECK RESULT:",
       result
     );
-
-
-    lastCheckedId =
-      videoId;
 
 
     // ----------------------------------------
@@ -542,11 +728,6 @@ async function checkAndBlock(
       // PAUSE VIDEO
       // ----------------------------------------
 
-      debug(
-        "Pausing all videos..."
-      );
-
-
       document
         .querySelectorAll("video")
         .forEach(
@@ -571,7 +752,7 @@ async function checkAndBlock(
       // ----------------------------------------
 
       debug(
-        "Sending REDIRECT_TO_YOUTUBE..."
+        "Requesting redirect to YouTube..."
       );
 
 
@@ -587,7 +768,7 @@ async function checkAndBlock(
 
 
         debug(
-          "REDIRECT_TO_YOUTUBE response:",
+          "Redirect response:",
           redirectResult
         );
 
@@ -635,7 +816,11 @@ async function checkAndBlock(
     checkInProgress =
       false;
 
+    activeCheckVideoId =
+      null;
+
   }
+
 }
 
 
@@ -647,51 +832,50 @@ function resetCandidate(
   videoId
 ) {
 
-  debug(
-    "Resetting candidate for video:",
-    videoId
-  );
-
-
   currentCandidate = {
 
     videoId,
 
-    title: null,
+    title:
+      null,
 
-    channel: null,
+    channel:
+      null,
 
-    description: null,
+    description:
+      null,
 
     metadataSince:
       0
 
   };
+
 }
 
 
 // ======================================================
-// PERIODIC CHECK
+// PROCESS CURRENT VIDEO
 // ======================================================
 
-function runCheck() {
+function processCurrentVideo() {
 
   const videoId =
     getCurrentVideoId();
 
 
   // ----------------------------------------
-  // NOT VIDEO PAGE
+  // Not a video page.
   // ----------------------------------------
 
   if (!videoId) {
 
     return;
+
   }
 
 
   // ----------------------------------------
-  // NEW VIDEO
+  // New video.
   // ----------------------------------------
 
   if (
@@ -718,7 +902,7 @@ function runCheck() {
 
 
   // ----------------------------------------
-  // ALREADY CHECKED
+  // Already checked.
   // ----------------------------------------
 
   if (
@@ -727,11 +911,39 @@ function runCheck() {
   ) {
 
     return;
+
   }
 
 
   // ----------------------------------------
-  // GET METADATA
+  // Another check is currently running.
+  // ----------------------------------------
+
+  if (
+    checkInProgress
+  ) {
+
+    if (
+      activeCheckVideoId ===
+      videoId
+    ) {
+
+      return;
+
+    }
+
+
+    debug(
+      "A check for another video is still running. Waiting..."
+    );
+
+    return;
+
+  }
+
+
+  // ----------------------------------------
+  // Collect metadata.
   // ----------------------------------------
 
   const metadata =
@@ -739,23 +951,20 @@ function runCheck() {
 
 
   // ----------------------------------------
-  // NO TITLE
+  // Title is required.
   // ----------------------------------------
 
   if (
     !metadata.title
   ) {
 
-    debug(
-      "No title yet. Waiting for YouTube..."
-    );
-
     return;
+
   }
 
 
   // ----------------------------------------
-  // CHECK WHETHER METADATA CHANGED
+  // Detect metadata changes.
   // ----------------------------------------
 
   const metadataChanged =
@@ -770,24 +979,9 @@ function runCheck() {
       currentCandidate.description;
 
 
-  if (metadataChanged) {
-
-    debug(
-      "Metadata changed. Saving candidate..."
-    );
-
-
-    debug(
-      "OLD:",
-      currentCandidate
-    );
-
-
-    debug(
-      "NEW:",
-      metadata
-    );
-
+  if (
+    metadataChanged
+  ) {
 
     currentCandidate.title =
       metadata.title;
@@ -803,16 +997,17 @@ function runCheck() {
 
 
     debug(
-      "Waiting 500ms for metadata to stabilize..."
+      "Metadata updated. Waiting for it to stabilize..."
     );
 
 
     return;
+
   }
 
 
   // ----------------------------------------
-  // WAIT FOR STABLE METADATA
+  // Wait for stable metadata.
   // ----------------------------------------
 
   const stableFor =
@@ -821,12 +1016,17 @@ function runCheck() {
 
 
   if (
-    stableFor < 500
+    stableFor < 1000
   ) {
 
     return;
+
   }
 
+
+  // ----------------------------------------
+  // Metadata is stable.
+  // ----------------------------------------
 
   debug(
     "%cMETADATA READY",
@@ -845,20 +1045,21 @@ function runCheck() {
     metadata,
     videoId
   );
+
 }
 
 
 // ======================================================
-// START PERIODIC CHECK
+// START MONITORING LOOP
 // ======================================================
 
 debug(
-  "Starting 500ms YouTube monitoring loop..."
+  "Starting YouTube monitoring loop..."
 );
 
 
 setInterval(
-  runCheck,
+  processCurrentVideo,
   500
 );
 
@@ -881,47 +1082,94 @@ window.addEventListener(
       getCurrentVideoId();
 
 
-    debug(
-      "New navigation video ID:",
-      videoId
-    );
+    // ----------------------------------------
+    // If navigation goes away from a video,
+    // reset the candidate.
+    // ----------------------------------------
+
+    if (!videoId) {
+
+      currentCandidate = {
+
+        videoId:
+          null,
+
+        title:
+          null,
+
+        channel:
+          null,
+
+        description:
+          null,
+
+        metadataSince:
+          0
+
+      };
+
+
+      lastCheckedId =
+        null;
+
+
+      return;
+
+    }
 
 
     // ----------------------------------------
-    // IMPORTANT:
-    // Cancel the previous video's state.
+    // Only reset state if the video actually
+    // changed.
     // ----------------------------------------
 
-    checkInProgress =
-      false;
+    if (
+      videoId !==
+      currentCandidate.videoId
+    ) {
+
+      debug(
+        "Navigation changed video to:",
+        videoId
+      );
 
 
-    lastCheckedId =
-      null;
+      resetCandidate(
+        videoId
+      );
 
 
-    resetCandidate(
-      videoId
-    );
+      lastCheckedId =
+        null;
+
+    }
 
 
-    runCheck();
+    // ----------------------------------------
+    // Do NOT manually cancel checkInProgress.
+    //
+    // The running check will finish normally.
+    // checkAndBlock() will verify the video ID
+    // before acting on the result.
+    // ----------------------------------------
+
+    processCurrentVideo();
 
 
     setTimeout(
-      runCheck,
+      processCurrentVideo,
       300
     );
 
 
     setTimeout(
-      runCheck,
+      processCurrentVideo,
       800
     );
 
 
     setTimeout(
-      runCheck,
+      processCurrentVideo,
       1500
     );
 
@@ -938,22 +1186,21 @@ window.addEventListener(
   () => {
 
     debug(
-      "%cYouTube page load detected",
-      "background: purple; color: white; font-weight: bold;"
+      "Page load detected."
     );
 
 
-    runCheck();
+    processCurrentVideo();
 
 
     setTimeout(
-      runCheck,
+      processCurrentVideo,
       500
     );
 
 
     setTimeout(
-      runCheck,
+      processCurrentVideo,
       1200
     );
 
@@ -966,8 +1213,8 @@ window.addEventListener(
 // ======================================================
 
 debug(
-  "Running initial immediate check..."
+  "Running initial video check..."
 );
 
 
-runCheck();
+processCurrentVideo();
