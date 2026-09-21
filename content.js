@@ -35,7 +35,7 @@ function debug(...args) {
 
 
 // ======================================================
-// LẤY VIDEO ID HIỆN TẠI
+// GET CURRENT VIDEO ID
 // ======================================================
 
 function getCurrentVideoId() {
@@ -84,7 +84,7 @@ function getCurrentVideoId() {
 
 
 // ======================================================
-// LẤY TITLE
+// GET TITLE
 // ======================================================
 
 function getRealVideoTitle() {
@@ -184,7 +184,7 @@ function getRealVideoTitle() {
 
 
 // ======================================================
-// LẤY CHANNEL
+// GET CHANNEL
 // ======================================================
 
 function getVideoChannel() {
@@ -247,7 +247,7 @@ function getVideoChannel() {
 
 
 // ======================================================
-// LẤY DESCRIPTION
+// GET DESCRIPTION
 // ======================================================
 
 function getVideoDescription() {
@@ -312,7 +312,7 @@ function getVideoDescription() {
 
 
 // ======================================================
-// LẤY TOÀN BỘ METADATA
+// GET ALL METADATA
 // ======================================================
 
 function getVideoMetadata() {
@@ -342,7 +342,7 @@ function getVideoMetadata() {
 
 
 // ======================================================
-// GỌI SERVICE WORKER
+// CALL SERVICE WORKER
 // ======================================================
 
 async function checkAndBlock(
@@ -392,6 +392,23 @@ async function checkAndBlock(
       "Description length:",
       metadata.description.length
     );
+
+
+    // ----------------------------------------
+    // CHECK EXTENSION RUNTIME
+    // ----------------------------------------
+
+    if (
+      typeof chrome === "undefined" ||
+      !chrome.runtime ||
+      typeof chrome.runtime.sendMessage !== "function"
+    ) {
+
+      throw new Error(
+        "Chrome extension runtime is unavailable in this content script."
+      );
+
+    }
 
 
     // ----------------------------------------
@@ -461,11 +478,10 @@ async function checkAndBlock(
 
     if (!result) {
 
-      console.error(
-        "[YT-Guard] ERROR: No response from service worker!"
+      throw new Error(
+        "No response from service worker."
       );
 
-      return;
     }
 
 
@@ -475,12 +491,10 @@ async function checkAndBlock(
 
     if (result.error) {
 
-      console.error(
-        "[YT-Guard] SERVICE WORKER ERROR:",
+      throw new Error(
         result.error
       );
 
-      return;
     }
 
 
@@ -517,13 +531,16 @@ async function checkAndBlock(
         result.matchedRule
       );
 
+
       debug(
         "Match source:",
         result.source
       );
 
 
-      // Pause video
+      // ----------------------------------------
+      // PAUSE VIDEO
+      // ----------------------------------------
 
       debug(
         "Pausing all videos..."
@@ -540,7 +557,9 @@ async function checkAndBlock(
               video.pause();
 
             } catch {
+
               // Ignore.
+
             }
 
           }
@@ -548,45 +567,38 @@ async function checkAndBlock(
 
 
       // ----------------------------------------
-      // CLOSE TAB
+      // REDIRECT TO YOUTUBE
       // ----------------------------------------
 
       debug(
-        "Sending CLOSE_CURRENT_TAB..."
+        "Sending REDIRECT_TO_YOUTUBE..."
       );
 
 
       try {
 
-        const closeResult =
+        const redirectResult =
           await chrome.runtime.sendMessage({
 
             action:
-              "CLOSE_CURRENT_TAB"
+              "REDIRECT_TO_YOUTUBE"
 
           });
 
 
         debug(
-          "CLOSE_CURRENT_TAB response:",
-          closeResult
+          "REDIRECT_TO_YOUTUBE response:",
+          redirectResult
         );
 
 
-      } catch (closeError) {
+      } catch (redirectError) {
 
         console.error(
-          "[YT-Guard] Could not request tab close:",
-          closeError
+          "[YT-Guard] Could not request YouTube redirect:",
+          redirectError
         );
 
-
-        debug(
-          "Trying window.close() fallback..."
-        );
-
-
-        window.close();
       }
 
 
@@ -659,7 +671,7 @@ function resetCandidate(
 
 
 // ======================================================
-// KIỂM TRA ĐỊNH KỲ
+// PERIODIC CHECK
 // ======================================================
 
 function runCheck() {
@@ -701,6 +713,7 @@ function runCheck() {
 
     lastCheckedId =
       null;
+
   }
 
 
@@ -872,6 +885,15 @@ window.addEventListener(
       "New navigation video ID:",
       videoId
     );
+
+
+    // ----------------------------------------
+    // IMPORTANT:
+    // Cancel the previous video's state.
+    // ----------------------------------------
+
+    checkInProgress =
+      false;
 
 
     lastCheckedId =
