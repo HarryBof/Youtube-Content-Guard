@@ -294,6 +294,8 @@ The rule type is handled internally and does not need to be displayed in the int
 
 # Installation
 
+Download the file from release then follow from step 3 or do the hard way below if you want.
+
 ## 1. Download the Repository
 
 Clone or download this repository:
